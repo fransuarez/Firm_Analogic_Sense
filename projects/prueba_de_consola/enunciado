@@ -1,0 +1,18 @@
+Tareas proximas TP profesional:
+------------------------------
+
+1- Funcion que tome un dato de consola y lo utlice para dato de simulacion de la funcion.
+
+2- Funcion de test que al ejecutarla muestre entradas y resultados de validacion de calculos  
+de una rutina/filtro (repo tiene lib de operaciones matematicas dsp).
+ 
+3- Funcion que permita tomar un archivo de datos para el procesamiento de datos continuos. 
+(ver si sirve ahora, el repo tiene librerias de manejo de archivos). HECHO
+
+5- Funcion que muestre el monitoreo de valores de entradas analogicas (usar ciaa_suport).
+
+4- Funcion que arme una tabla con valores de distintas GPIOS como AIO/DIO configurables.
+
+6- Rutinas y reloj RTC con implementacion de timers para ejecutar eventos por tiempo 
+(comparar con estructura de tp facu y con rutinas actuales del repo de ridolfi).
+
