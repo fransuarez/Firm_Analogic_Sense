@@ -18,7 +18,7 @@
 #define MODELO_BETA			1
 #define MODELO_SHEINART		2
 
-#define MODELO_TERMISTOR	MODELO_SHEINART
+#define MODELO_TERMISTOR	MODELO_BETA  // MODELO_BETA
 
 
 typedef int32_t temp_t;

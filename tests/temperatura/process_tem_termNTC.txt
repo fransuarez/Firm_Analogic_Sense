@@ -1,1 +1,11 @@
-cvbzfgsdfgsdfgsdgsdfgsdf
+  R_med				 T_cal			  R_cal			  R_error
+-----------------------------------------------------------
+  13000 Omhs		+13.45°C	  12999 Ohms		0.00
+  11000 Omhs		+17.59°C	  11000 Ohms		0.00
+   8000 Omhs		+25.81°C	   8000 Ohms		0.00
+   3000 Omhs		+54.34°C	   3000 Ohms		0.00
+   1000 Omhs		+93.54°C	   1000 Ohms		0.00
+  20000 Omhs		+3.31°C	  19999 Ohms		0.00
+  35000 Omhs		-8.84°C	  34999 Ohms		0.00
+  75000 Omhs		-23.77°C	  74999 Ohms		0.00
+   5000 Omhs		+38.84°C	   4999 Ohms		0.00

@@ -92,9 +92,9 @@ double tstorTempToRes (double dT, cntc_t* dCoeff)
 		r  = exp(u - v);
 
 #else
-		x = dCoeff[0];
-		c = 1/dCoeff[1]-1/dT;
-		y = -dCoeff[2]*c;
+		x = dCoeff->A;
+		c = 1/dCoeff->B-1/dT;
+		y = (dCoeff->C)*c*(-1);
 
 		r = x*exp(y);
 #endif
