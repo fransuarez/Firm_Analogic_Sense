@@ -1,0 +1,181 @@
+vpath [pattern] [directories]
+-------------------------
+    Specify the search path directories for file names that match [pattern].
+    The search path, [directories], is a list of directories to be searched, separated by colons (semi-colons on MS-DOS and MS-Windows) or blanks, just like the search path used in the VPATH variable.
+
+
+$(MAKECMDGOALS)
+---------------
+	Make will set the special variable MAKECMDGOALS to the list of goals you specified on the command line. If no goals were given on the command line, this variable is empty. Note that this variable should be used only in special circunstances.
+	An example of appropriate use is to avoid including .d files during clean rules (see Automatic Prerequisites), so make won’t create them only to immediately remove them again:
+
+	sources = foo.c bar.c
+	ifneq ($(MAKECMDGOALS),clean)
+	include $(sources:.c=.d)
+	endif
+
+$(MAKEFILE_LIST)
+----------------
+    Contains the name of each makefile that is parsed by make, in the order in which it was parsed. The name is appended just before make begins to parse the makefile. Thus, if the first thing a makefile does is examine the last word in this variable, it will be the name of the current makefile. Once the current makefile has used include, however, the last word will be the just-included makefile.
+
+If a makefile named Makefile has this content:
+
+    name1 := $(lastword $(MAKEFILE_LIST))
+    include inc.mk
+    name2 := $(lastword $(MAKEFILE_LIST))
+    all:
+            @echo name1 = $(name1)
+            @echo name2 = $(name2)
+
+then you would expect to see this output:
+
+    name1 = Makefile
+    name2 = inc.mk
+
+
+Substitution References
+------------------------
+	When we say “at the end of a word”, we mean that a must appear either followed by whitespace or at the end of the value in order to be replaced; other occurrences of a in the value are unaltered. For example:
+
+	foo := a.o b.o c.o
+	bar := $(foo:.o=.c)
+
+sets ‘bar’ to ‘a.c b.c c.c’. See Setting Variables. 
+
+$(patsubst pattern, replacement, text)
+--------------------------------------
+    Finds whitespace-separated words in [text] that match [pattern] and replaces them with [replacement]. Here pattern may contain a ‘%’ which acts as a wildcard, matching any number of any characters within a word. If replacement also contains a ‘%’, the ‘%’ is replaced by the text that matched the ‘%’ in pattern. Only the first ‘%’ in the pattern and replacement is treated this way; any subsequent ‘%’ is unchanged. 
+    
+    For example:
+	$(patsubst %.c, %.o, x.c.c bar.c)
+
+produces the value ‘x.c.o bar.o’. 
+
+$(strip string)
+---------------
+    Removes leading and trailing whitespace from [string] and replaces each internal sequence of one or more whitespace characters with a single space. 	Thus, ‘$(strip a b c )’ results in ‘a b c’.
+    The function strip can be very useful when used in conjunction with conditionals. When comparing something with the empty string ‘’ using ifeq or ifneq, you usually want a string of just whitespace to match the empty string (see Conditionals).
+Thus, the following may fail to have the desired results:
+
+    .PHONY: all
+    ifneq   "$(needs_made)" ""
+    all: $(needs_made)
+    else
+    all:;@echo 'Nothing to make!'
+    endif
+
+Replacing the variable reference ‘$(needs_made)’ with the function call ‘$(strip $(needs_made))’ in the ifneq directive would make it more robust.
+
+
+$(notdir [names…])
+-----------------
+    Extracts all but the directory-part of each file name in [names]. If the file name contains no slash, it is left unchanged. Otherwise, everything through the last slash is removed from it.
+
+    A file name that ends with a slash becomes an empty string. This is unfortunate, because it means that the result does not always have the same number of whitespace-separated file names as the argument had; but we do not see any other valid alternative.
+
+    For example:
+    $(notdir src/foo.c hacks)
+
+produces the result ‘foo.c hacks’.
+
+
+$(dir names…)
+-------------
+    Extracts the directory-part of each file name in names. The directory-part of the file name is everything up through (and including) the last slash in it. If the file name contains no slash, the directory part is the string ‘./’. 
+    For example:
+    $(dir src/foo.c hacks)
+
+produces the result ‘src/ ./’.
+
+
+$(abspath names…)
+-----------------
+    For each file name in names return an absolute name that does not contain any . or .. components, nor any repeated path separators (/). Note that, in contrast to realpath function, abspath does not resolve symlinks and does not require the file names to refer to an existing file or directory. Use the wildcard function to test for existence. 
+    
+
+$(wildcard [pattern])
+--------------------
+    The argument [pattern] is a file name pattern, typically containing wildcard characters (as in shell file name patterns). The result of wildcard is a space-separated list of the names of existing files that match the pattern. 
+    See Using Wildcard Characters in File Names.
+    
+    
+$(lastword names…)
+------------------
+    The argument names is regarded as a series of names, separated by whitespace. The value is the last name in the series.
+
+    For example:
+    $(lastword foo bar)
+
+produces the result ‘bar’. Although $(lastword text) is the same as $(word $(words text),text), the lastword function was added for its simplicity and better performance. 
+
+
+$(subst from,to,text)
+---------------------
+    Performs a textual replacement on the text text: each occurrence of from is replaced by to. The result is substituted for the function call. For example,
+
+	For example:
+    $(subst ee,EE,feet on the street)
+
+substitutes the string ‘fEEt on the strEEt’.
+
+
+include [filenames…]
+-------------------
+The include directive tells make to suspend reading the current makefile and read one or more other makefiles before continuing. The directive is a line in the makefile.
+
+[filenames] can contain shell file name patterns. If filenames is empty, nothing is included and no error is printed. 
+
+
+-include [filenames…]
+--------------------
+If you want make to simply ignore a makefile which does not exist or cannot be remade, with no error message, use the -include directive instead of include.
+
+This acts like include in every way except that there is no error (not even a warning) if any of the filenames (or any prerequisites of any of the filenames) do not exist or cannot be remade.
+For compatibility with some other make implementations, sinclude is another name for -include.
+
+{ Si desea que make simplemente ignore un makefile que no existe o no puede rehacerse, sin mensaje de error, use la directiva [-include] en lugar de [include]. }
+
+The shell Function
+------------------
+The shell function is unlike any other function other than the wildcard function in that it communicates with the world outside of make.
+
+Here are some examples of the use of the shell function:
+	contents := $(shell cat foo)
+
+sets contents to the contents of the file foo, with a space (rather than a newline) separating each line.
+
+	For example:	
+	files := $(shell echo *.c)
+
+sets files to the expansion of ‘*.c’.
+
+
+The foreach Function
+---------------------
+The foreach function is very different from other functions. It causes one piece of text to be used repeatedly, each time with a different substitution performed on it. It resembles the for command in the shell sh and the foreach command in the C-shell csh.
+
+The syntax of the foreach function is:
+	$(foreach var,list,text)
+
+The first two arguments, [var] and [list], are expanded before anything else is done; note that the last argument, [text], is not expanded at the same time. 
+Then for each word of the expanded value of [list], the variable named by the expanded value of [var] is set to that word, and [text] is expanded. Presumably [text] contains references to that [var]iable, so its expansion will be different each time. 
+
+.PHONY targets
+---------------
+	A phony target is one that is not really the name of a file; rather it is just a name for a recipe to be executed when you make an explicit request. There are two reasons to use a phony target: to avoid a conflict with a file of the same name, and to improve performance. 
+	
+	By declaring the sub-directories as .PHONY targets (you must do this as the sub-directory obviously always exists; otherwise it won’t be built) you can remove these problems:
+
+	SUBDIRS = foo bar baz
+	.PHONY: subdirs $(SUBDIRS)
+
+	subdirs: $(SUBDIRS)
+	$(SUBDIRS):
+        $(MAKE) -C $@
+
+	foo: baz
+
+Here we’ve also declared that the foo sub-directory cannot be built until after the baz sub-directory is complete; this kind of relationship declaration is particularly important when attempting parallel builds.
+
+	The implicit rule search (see Implicit Rules) is skipped for .PHONY targets. This is why declaring a target as .PHONY is good for performance, even if you are not worried about the actual file existing. 
+

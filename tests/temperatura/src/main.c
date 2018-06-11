@@ -159,7 +159,9 @@ static int test2 ( void )
 		fd_data_output = fopen ( "process_tem_termNTC.txt", "w+" );
 		if( NULL !=  fd_data_output )
 		{
-			fputs( "  R_med\t\t\t\t T_cal\t\t\t  R_cal\t\t\t  R_error\n"
+			fputs( " Calculo de Temperartura y Resistencia a partir del modelo BETA:\n", fd_data_output );
+
+			fputs( "  R_med\t\t\t\t T_cal\t\t\t R_cal\t\t\t R_error\n"
 				   "-----------------------------------------------------------\n", fd_data_output );
 			while( !feof( fd_data_input ) )
 			{
@@ -324,7 +326,7 @@ static int	processDataError( dproc_t *data, char * buffer )
 
 static int	processNtcDataOk( dntc_t *data, char * buffer )
 {
-	if( 0 < sprintf( buffer, "%7d Omhs\t\t%+3.2f°C\t%7d Ohms\t\t%1.2f\%\n",
+	if( 0 < sprintf( buffer, "%7d Omhs\t\t%+3.2f °C\t%7d Ohms\t\t%1.2f\%\n",
 		(int)data->resisMedida, data->tempCalc, (int)data->resisCalc, (data->resisError/data->resisMedida)*100 ))
 	{
 		return strlen( buffer );

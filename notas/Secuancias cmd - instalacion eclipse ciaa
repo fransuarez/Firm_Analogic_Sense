@@ -1,0 +1,43 @@
+sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
+sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
+sudo apt-get update
+sudo apt-get install gcc-arm-none-eabi
+echo 'export PATH=$PATH:/usr/arm-none-eabi/bin' >> /home/fran/.bashrc
+
+echo $PATH
+sudo apt-get install php5-cli
+sudo apt-get remove php5-common -y
+sudo apt-get install python-software-properties
+sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+sudo apt-get update
+
+sudo apt-get install libgtk2.0-0:i386 libxtst6:i386 libpangox-1.0-0:i386 libpangoxft-1.0-0:i386 libidn11:i386 libglu1-mesa:i386 libncurses5:i386 libudev1:i386 libusb-1.0:i386 libusb-0.1:i386 gtk2-engines-murrine:i386 libnss3-1d:i386 libwebkitgtk-1.0-0
+
+sudo apt-get install libftdi-dev && sudo apt-get install libusb-1.0-0-dev
+sudo apt-get install pkg-config
+
+wget http://ufpr.dl.sourceforge.net/project/openocd/openocd/0.9.0/openocd-0.9.0.tar.bz2
+tar -xvjf openocd-0.9.0.tar.bz2
+
+cd openocd-0.9.0
+./configure --enable-ftdi
+make
+sudo make install
+
+sudo cp /home/fran/openocd-0.9.0/contrib/99-openocd.rules /etc/udev/rules.d/
+sudo service udev restart  <-- esto no se si se instalo....
+
+cd /opt/ && sudo tar -zxvf home/user/Escritorio/eclipse-kepler-x64.tar.gz
+
+$PATH
+/home/fran/bin:/home/fran/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/fran/CIAA/gcc-arm-none-eabi-4_9-2015q1/bin:/home/fran/CIAA/openocd-0.9.0/src:/usr/arm-none-eabi/bin
+
+$PATH
+/home/fran/bin:/home/fran/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/fran/CIAA/gcc-arm-none-eabi-5_4-2016q2/bin:/home/fran/CIAA/openocd-0.9.0/src
+
+run/debug openocd Preferences Eclipse:
+/usr/local/bin -> cambie el folder a: /home/fran/CIAA/openocd-0.9.0/src
+
+wget https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-linux.tar.bz2
+tar -xjvf gcc-arm-none-eabi-5_4-2016q2-20160622-linux.tar.bz2
+

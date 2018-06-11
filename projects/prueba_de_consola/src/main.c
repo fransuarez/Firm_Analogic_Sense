@@ -48,6 +48,7 @@
 /*==================[inclusions]=============================================*/
 #include <main.h>
 #include <stdio.h>
+#include <ciaaAIN.h>
 
 /*==================[macros and definitions]=================================*/
 #define MAX_UINT32  (2^32)-1
@@ -140,6 +141,12 @@ static void taskDetectPulse(void * a)
 				xQueueSend(queueSigLed, &dataToSend, portMAX_DELAY);
 			}
 		}
+		// leo el termistor:
+		ciaaAINRead(0);
+
+		// leo la termocupla:
+		ciaaAINRead(1);
+
 	}
 }
 
@@ -149,8 +156,10 @@ static void initHardware(void)
     SystemCoreClockUpdate();
 
     Board_Init();
-    //Board_Buttons_Init();
 
+    ciaaAINInit();
+
+    //Board_Buttons_Init();
     Chip_PININT_Init( LPC_GPIO_PIN_INT );
     Chip_SCU_GPIOIntPinSel( ID_IRQ_PIN_INT0, ID_PORT_TEC1, ID_PIN_TEC1 );
     //Chip_PININT_SetPinModeLevel(LPC_GPIO_PIN_INT, PININTCH0);

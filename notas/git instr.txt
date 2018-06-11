@@ -1,0 +1,117 @@
+0- inicias una consola linux
+1- te paras en la carpeta que va a ser tu repositorio local
+2- generas tu repo vacio con el siguiente comando:
+git init
+3- creara un carpeta oculta .git con contenido que nunca tocaremos
+4- podemos editar el usario y email del suargio con: git config --global/local user.name/user.email 
+con local solo modifico el repo puntual, con global agrego eso a todos los repos a menos que tenga una config local.
+
+$ mkdir myproject
+$ git init
+$ git config --global user.name fransuarez
+$ git config --global user.email web.franky@gmail.com
+$ cat ~ .git/config
+
+$ vim main.c
+$ git status
+$ git add main.c
+$ git commit -m "Se crea la estructura basica."
+$ git log
+
+$ git branch driverMotor
+$ git branch
+$ git checkout driverMotor
+$ git checkout mastergit
+
+Entorno grafico:
+$ gitk
+
+$ git remote add origin https://github.com/fransuarez/miprojecto.git
+git remote add origin https://github.com/fransuarez/miprojecto.git
+$ git push -u origin master
+$ git push --all
+
+$ cd cloneproject/
+$ git clone
+$ git clone https://github.com/apermingeat/miProyecto.git
+$ git add main.c
+$ git commit -m -s "Se agrega estructura de driver." .
+$ git push
+$ git clone --recursive https://github.com/ciaa/Firmware.git
+
+
+warning: push.default is unset; its implicit value has changed in
+Git 2.0 from 'matching' to 'simple'. To squelch this message
+and maintain the traditional behavior, use:
+
+  git config --global push.default matching
+
+To squelch this message and adopt the new behavior now, use:
+
+  git config --global push.default simple
+
+When push.default is set to 'matching', git will push local branches
+to the remote branches that already exist with the same name.
+
+Since Git 2.0, Git defaults to the more conservative 'simple'
+behavior, which only pushes the current branch to the corresponding
+remote branch that 'git pull' uses to update the current branch.
+
+See 'git help config' and search for 'push.default' for further information.
+(the 'simple' mode was introduced in Git 1.7.11. Use the similar mode
+'current' instead of 'simple' if you sometimes use older versions of Git)
+
+Use [git tag] command to add a new one tag:
+	git tag -a v1.4 -m 'version 1.4'
+
+---------------------------------------------------------------------------------------------------------
+Gitlab
+fransuarez
+web.franky
+Repos2017
+
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/fran/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+
+Your identification has been saved in /home/fran/.ssh/id_rsa.
+Your public key has been saved in /home/fran/.ssh/id_rsa.pub.
+
+The key fingerprint is:
+SHA256:urhXKA3NMZ0f6EEYpDN0DU24l09bbCuhERRFRRPQoKU web.franky@gmail.com
+
+The key's randomart image is:
++---[RSA 4096]----+
+|    ..=%=***=.   |
+|   . o= O+. ..   |
+|    +o =E= o     |
+|    .o+ = + +    |
+|     o oS= = .   |
+|    . o.o + .    |
+|     ...   .     |
+|     ...         |
+|    oo.          |
++----[SHA256]-----+
+
+…or create a new repository on the command line
+
+echo "# Firm_Analogic_Sense" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/fransuarez/Firm_Analogic_Sense.git
+git push -u origin master
+
+…or push an existing repository from the command line
+
+git remote add origin https://github.com/fransuarez/Firm_Analogic_Sense.git
+git push -u origin master
+
+…or import code from another repository
+
+You can initialize this repository with code from a Subversion, Mercurial, or TFS project.
+
+fransuarez
+Repos16
+

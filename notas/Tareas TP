@@ -1,0 +1,44 @@
+Tareas proximas TP profesional:
+------------------------------
+
+1- Funcion que tome un dato de consola y lo utlice para dato de simulacion de la funcion.
+2- Funcion de de test que al ejecutarla muestre entrada y resultado de validacion de calculos 
+   (repo tien lib de operaciones matematicas dsp). Por ahora tengo las del test.
+3- Funcion que permita tomar un archivo para el procesamiento de datos continuos. (ver si sirve ahora, el repo tiene librerias de manejo de archivos)
+5- Funcion que muestre el monitoreo de valores de entradas analogicas (usar ciaa_suport)
+4- Funcion que arme una tabla con valores de distintas entradas y salidas configurables.
+6- Rutinas y reloj RTC con implementacion de timers para ejecutar eventos por tiempo (comparar con estructura de tp facu y con rutinas actuales del repo de ridolfi)
+
+
+Pasos:
+------
+1- Agregar a GPIO_Manager (por ponerle un nombre) las entradas analogicas 0 y 1.
+2_a- Soldar los pines al edu ciaa y armar algun divisor resistivo mas un potenciometro.
+2_b- Variar la tension en dichas entradas y procesar sus valores con las funciones de señal.
+3- Agregar al comando estado el monitoreo constante de las entradas y sus variaciones.
+4- Implementar el reloj NTC o como se llame el periferico para registrar en el log.
+5- Implementar el guardado de N registros por vez en memoria (en principio voy a usar la eeprom interna).
+6- Agregar la otra entrada analogica que estara destinada a medir conductividad en primer instancia.
+
+Nota: armar un nuevo proyecto para independizarlo del de test de consola que esta bueno asi como esta.
+
+Coeficientes Modelo de Scheinart
+A= -5.366×10(-3)
+B=  1.260×10(-3)
+C= -3.623×10(-6)
+
+−0.370265323+-0.370528705
+
+s= 0.904827568
+t= 0.064100591
+
+s^3= 0.740794028
+t^3= 0.000263382
+
+A= 0.740530646
+
+0.504618113
+1.371694248
+
+y/2= 0.370265323
+x=   0.370002257
