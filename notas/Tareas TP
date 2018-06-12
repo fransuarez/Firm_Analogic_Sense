@@ -15,12 +15,15 @@ Pasos:
 1- Agregar a GPIO_Manager (por ponerle un nombre) las entradas analogicas 0 y 1.
 2_a- Soldar los pines al edu ciaa y armar algun divisor resistivo mas un potenciometro.
 2_b- Variar la tension en dichas entradas y procesar sus valores con las funciones de señal.
-3- Agregar al comando estado el monitoreo constante de las entradas y sus variaciones.
-4- Implementar el reloj NTC o como se llame el periferico para registrar en el log.
+3- Agregar al comando estado el monitoreo constante de las entradas.
+4- Implementar el reloj RTC o como se llame el periferico, para registrar en el log.
 5- Implementar el guardado de N registros por vez en memoria (en principio voy a usar la eeprom interna).
-6- Agregar la otra entrada analogica que estara destinada a medir conductividad en primer instancia.
+6- Agregar la otra entrada analogica que estara destinada a medir conductividad en el primer modelo.
 
 Nota: armar un nuevo proyecto para independizarlo del de test de consola que esta bueno asi como esta.
+
+
+
 
 Coeficientes Modelo de Scheinart
 A= -5.366×10(-3)

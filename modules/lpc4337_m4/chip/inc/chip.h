@@ -29,7 +29,7 @@
 #ifndef __CHIP_H_
 #define __CHIP_H_
 
-#include "sys_config.h"
+//#include "sys_config.h"
 #include "cmsis.h"
 
 #if defined(CHIP_LPC18XX)

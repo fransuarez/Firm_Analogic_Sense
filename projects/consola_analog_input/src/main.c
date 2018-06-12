@@ -48,6 +48,8 @@
 /*==================[inclusions]=============================================*/
 #include <main.h>
 #include <stdio.h>
+//#include "ciaaAIN.h"
+
 
 /*==================[macros and definitions]=================================*/
 #define MAX_UINT32  (2^32)-1
@@ -109,7 +111,7 @@ static void taskDetectPulse(void * a)
 	{
 		*(ptrstack+1)= uxTaskGetStackHighWaterMark( pxCreatedTask2 );
 
-		if( pdTRUE == xQueueReceive( queueKeyPad, &dataRecKey, portMAX_DELAY )){
+		if( pdTRUE == xQueueReceive( queueKeyPad, &dataRecKey, 0 )){
 			if( HIGH == dataRecKey.state ){
 				tOnKeys[dataRecKey.key]= dataRecKey.ticktimes;
 			}
@@ -140,6 +142,12 @@ static void taskDetectPulse(void * a)
 				xQueueSend(queueSigLed, &dataToSend, portMAX_DELAY);
 			}
 		}
+		// leo el termistor:
+		ciaaAINRead(0);
+
+		// leo la termocupla:
+		ciaaAINRead(1);
+
 	}
 }
 
