@@ -40,7 +40,8 @@ void taskConsola (void * parametrosTarea)
     ntshell_set_prompt(&nts, "LPC824>");
     printConsola(nts.prompt, MP_DEF);
 
-	while(1) {
+	while(1)
+	{
 		*(ptrstack+2)= uxTaskGetStackHighWaterMark( pxCreatedTask3 );
 		xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
 		ntshell_execute(&nts);
@@ -103,7 +104,8 @@ int sendConsola (char * string)
 	//auxargv[i++]= string;
 
 	nextWord= strtok (buffInpProg, " .");
-	while (nextWord != NULL && i< AUX_ARGC) {
+	while (nextWord != NULL && i< AUX_ARGC)
+	{
 		//printf ("%s\n",nextWord);
 		auxargv[i++]= nextWord;
 		nextWord= strtok (NULL, " .");
@@ -112,7 +114,8 @@ int sendConsola (char * string)
 	inputDatos= INTERNO;
 
 	// Blanqueo los demas punteros:
-	if (i< AUX_ARGC) {
+	if (i< AUX_ARGC)
+	{
 		while (i< AUX_ARGC)
 			auxargv[i++]= NULL;
 	}
@@ -135,10 +138,12 @@ static int serial_read(char *buf, int cnt, void *extobj)
 /**** Serial write function ****/
 static int serial_write(const char *buf, int cnt, void *extobj)
 {
+	int i = 0;
 	xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
 	//if (chequearUART()!=0);
 
-    for (int i = 0; i < cnt; i++) {
+    for (; i < cnt; i++)
+    {
     	uartSendChar(buf[i]);
     }
     xSemaphoreGive( mutexConsola );

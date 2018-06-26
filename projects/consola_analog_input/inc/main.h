@@ -81,10 +81,10 @@ typedef enum{
 } statPin_t;
 
 typedef enum{
-	LED1=FIRSTLED,
-	LED2,
-	LED3,
-	LED4
+	LED_1=1,
+	LED_2=2,
+	LED_3=4,
+	LED_4=8
 } led_t;
 
 typedef enum{
@@ -96,8 +96,8 @@ typedef enum{
 
 
 typedef struct{
-	led_t      led;
-	TickType_t deltaT;
+	uint8_t    led;
+	uint16_t  *readVal;
 } signal_t;
 
 typedef struct{
@@ -107,7 +107,7 @@ typedef struct{
 } queue_t;
 
 /*==================[external data declaration]==============================*/
-
+#define SELECT_LED(A) (A+FIRSTLED)
 /*==================[external functions declaration]=========================*/
 
 /** @brief main function

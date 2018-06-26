@@ -37,6 +37,7 @@
 #include "chip.h"
 
 void ciaaAINInit(void);
+void ADC0_IRQHandler_Suport(void);
 uint16_t ciaaAINRead(uint8_t input);
 
 #endif /* CIAAAIN_H_ */

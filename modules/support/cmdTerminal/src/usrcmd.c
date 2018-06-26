@@ -72,11 +72,13 @@ int usrcmd_execute(const char *text)
 /**** Callback function for ntopt module ****/
 static int usrcmd_ntopt_callback(int argc, char **argv, void *extobj)
 {
+	int i = 0;
+
     if (argc == 0) {
         return 0;
     }
     const cmd_table_t *p = &cmdlist[0];
-    for (int i = 0; i < sizeof(cmdlist) / sizeof(cmdlist[0]); i++) {
+    for (; i < sizeof(cmdlist) / sizeof(cmdlist[0]); i++) {
         if (ntlibc_strcmp((const char *)argv[0], p->cmd) == 0) {
             return p->func(argc, argv);
         }
@@ -110,7 +112,8 @@ static int usrcmd_ntopt_callback(int argc, char **argv, void *extobj)
 static int usrcmd_help(int argc, char **argv)
 {
     const cmd_table_t *p = &cmdlist[0];
-    for (int i = 0; i < sizeof(cmdlist) / sizeof(cmdlist[0]); i++) {
+    int i = 0;
+    for (; i < sizeof(cmdlist) / sizeof(cmdlist[0]); i++) {
     	uartSendStr(p->cmd);
     	uartSendStr("\t:");
     	uartSendStr(p->desc);

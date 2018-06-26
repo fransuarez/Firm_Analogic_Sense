@@ -135,10 +135,11 @@ static int serial_read(char *buf, int cnt, void *extobj)
 /**** Serial write function ****/
 static int serial_write(const char *buf, int cnt, void *extobj)
 {
+	int i = 0;
 	xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
 	//if (chequearUART()!=0);
 
-    for (int i = 0; i < cnt; i++) {
+    for (; i < cnt; i++) {
     	uartSendChar(buf[i]);
     }
     xSemaphoreGive( mutexConsola );

@@ -35,12 +35,13 @@
 
 uint16_t current_in[4];
 
-void ADC0_IRQHandler(void)
+void ADC0_IRQHandler_Suport(void)
 {
 	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT)==SET)
 	{
 		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
 	}
+
 	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT)==SET)
 	{
 		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
@@ -49,10 +50,12 @@ void ADC0_IRQHandler(void)
 	{
 		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
 	}
+#if 0
 	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH4, ADC_DR_DONE_STAT)==SET)
 	{
 		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH4, current_in+3);
 	}
+#endif
 }
 
 void ciaaAINInit(void)
@@ -64,12 +67,16 @@ void ciaaAINInit(void)
 	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH1, ENABLE);
 	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH2, ENABLE);
 	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH3, ENABLE);
+#if 0
 	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH4, ENABLE);
+#endif
 
 	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH1, ENABLE);
 	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH2, ENABLE);
 	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH3, ENABLE);
+#if 0
 	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH4, ENABLE);
+#endif
 
 	Chip_ADC_SetBurstCmd(LPC_ADC0, ENABLE);
 

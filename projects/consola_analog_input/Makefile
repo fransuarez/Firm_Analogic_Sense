@@ -36,14 +36,14 @@ PROJECT_NAME := $(notdir $(PROJECT))
 PROJECT_MODULES := \
                    modules/$(TARGET)/base 			\
                    modules/$(TARGET)/board 			\
-                   modules/$(TARGET)/chip			\
                    modules/support/cmdTerminal 		\
                    modules/external/freertos 		\
                    modules/support/dspMath			\
                    modules/external/tinyShell 		\
                    modules/external/colasCirculares \
                    modules/$(TARGET)/ciaa_suport	\
-                   modules/$(TARGET)/sapi_bm_ciaa	\
+                   modules/$(TARGET)/chip			
+                   
 
 # source files folder
 PROJECT_SRC_FOLDERS := $(PROJECT)/src
