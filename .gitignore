@@ -7,3 +7,9 @@ tests/temperatura/out/obj/
 
 tests/temperatura/test_temperatura
 /Default/
+/tests/temperatura/.settings/language.settings.xml
+/tests/temperatura/*.cproject
+/tests/temperatura/*.project
+/tests/temperatura/.settings
+.settings
+out
