@@ -56,12 +56,13 @@ typedef struct {
     char *cmd;
     char *desc;
     USRCMDFUNC func;
+
 } cmd_table_t;
 
 static const cmd_table_t cmdlist[] = {
     { "help", "This is a description text string for help command.", usrcmd_help },
     { "info", "This is a description text string for info command.", usrcmd_info },
-	{ "stat"	, "Muestra el estado general del sistema"	, cmd_statSystem 		},
+	{ "stat", "Muestra el estado general del sistema"				, cmd_statSystem 		},
 };
 
 int usrcmd_execute(const char *text)

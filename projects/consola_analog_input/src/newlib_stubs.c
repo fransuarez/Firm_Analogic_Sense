@@ -6,8 +6,6 @@
 
 #include "newlib_stubs.h"
 
-
-
 #ifdef errno
 #undef errno
 #endif

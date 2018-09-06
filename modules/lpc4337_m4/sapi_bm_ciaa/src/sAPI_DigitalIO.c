@@ -195,7 +195,7 @@ const pinConfigDigitalLpc4337_t digitalPinsConfig[] = {
 
 /*==================[internal functions definition]==========================*/
 
-static void digitalObtainPinConfig( int8_t pin, int8_t config,
+static void digitalObtainPinConfig( DigitalIOMap_t pin,
                       int8_t *pinNamePort, int8_t *pinNamePin, int8_t *func,
                       int8_t *gpioPort, int8_t *gpioPin ){
 
@@ -208,7 +208,7 @@ static void digitalObtainPinConfig( int8_t pin, int8_t config,
 
 /*==================[external functions definition]==========================*/
 
-bool_t digitalConfig( int8_t pin, int8_t config ){
+bool_t digitalConfig( DigitalIOMap_t pin, digitalIOConfig_t config ){
 
    bool_t ret_val     = 1;
 
@@ -220,10 +220,9 @@ bool_t digitalConfig( int8_t pin, int8_t config ){
    int8_t gpioPort    = 0;
    int8_t gpioPin     = 0;
 
-   digitalObtainPinConfig( pin, config, &pinNamePort, &pinNamePin, &func,
-                           &gpioPort, &gpioPin );
+   digitalObtainPinConfig( pin, &pinNamePort, &pinNamePin, &func, &gpioPort, &gpioPin );
 
-   switch(config){
+   switch (config){
 
       case ENABLE_DIGITAL_IO:
 		   /* Initializes GPIO */
@@ -290,7 +289,7 @@ bool_t digitalConfig( int8_t pin, int8_t config ){
 }
 
 
-bool_t digitalWrite( int8_t pin, bool_t value ){
+bool_t digitalWrite( DigitalIOMap_t pin, bool_t value ){
 
    bool_t ret_val     = 1;
 
@@ -311,7 +310,7 @@ bool_t digitalWrite( int8_t pin, bool_t value ){
 }
 
 
-bool_t digitalRead( int8_t pin ){
+bool_t digitalRead( DigitalIOMap_t pin ){
 
    bool_t ret_val     = OFF;
 

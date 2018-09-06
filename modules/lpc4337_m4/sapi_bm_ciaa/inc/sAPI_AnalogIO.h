@@ -60,9 +60,9 @@ typedef enum{
 
 void analogConfig( uint8_t config );
 
-uint16_t analogRead( uint8_t analogInput );
+uint16_t analogRead( AnalogIOMap_t analogInput );
 
-void analogWrite( uint8_t analogOutput, uint16_t value );
+void analogWrite( AnalogIOMap_t analogOutput, uint16_t value );
 
 
 /*==================[cplusplus]==============================================*/

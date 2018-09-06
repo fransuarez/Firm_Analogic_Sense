@@ -85,9 +85,9 @@ typedef struct{
 
 /*==================[external functions declaration]=========================*/
 
-bool_t digitalConfig( int8_t, int8_t );
-bool_t digitalRead( int8_t );
-bool_t digitalWrite( int8_t, bool_t );
+bool_t digitalConfig( DigitalIOMap_t, int8_t );
+bool_t digitalRead	( DigitalIOMap_t );
+bool_t digitalWrite	( DigitalIOMap_t, bool_t );
 
 /*==================[cplusplus]==============================================*/
 

@@ -52,7 +52,6 @@
 /*==================[macros and definitions]=================================*/
 #define MAX_UINT32  (2^32)-1
 
-#define TWAIT	   	20
 #define PERIODO	  	1000
 #define NUM_TASK	3
 

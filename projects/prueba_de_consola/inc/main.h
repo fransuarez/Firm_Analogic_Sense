@@ -37,17 +37,6 @@
 /** \addtogroup rtos_blink FreeRTOS blink example
  ** @{ */
 
-/*==================[inclusions]=============================================*/
-#include "FreeRTOSConfig.h"
-//#include "Pulse_Count_Task.h"
-#include "board.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-//#include "sAPI.h"
-
-#include "services_Shell.h"
 
 /*==================[cplusplus]==============================================*/
 
@@ -55,58 +44,6 @@
 extern "C" {
 #endif
 
-/*==================[macros]=================================================*/
-#define ID_IRQ_PIN_INT0	0
-#define ID_IRQ_PIN_INT1	1
-#define ID_IRQ_PIN_INT2	2
-#define ID_IRQ_PIN_INT3	3
-
-#define ID_PORT_TEC1	0
-#define ID_PORT_TEC2	0
-#define ID_PORT_TEC3	0
-#define ID_PORT_TEC4	1
-
-#define ID_PIN_TEC1		4
-#define ID_PIN_TEC2		8
-#define ID_PIN_TEC3		9
-#define ID_PIN_TEC4		9
-
-#define FIRSTLED	   	2
-
-/*==================[typedef]================================================*/
-
-typedef enum{
-	HIGH,
-	LOW
-} statPin_t;
-
-typedef enum{
-	LED1=FIRSTLED,
-	LED2,
-	LED3,
-	LED4
-} led_t;
-
-typedef enum{
-	TECL1=0,
-	TECL2,
-	TECL3,
-	TECL4
-} tec_t;
-
-
-typedef struct{
-	led_t      led;
-	TickType_t deltaT;
-} signal_t;
-
-typedef struct{
-	tec_t      key;
-	statPin_t  state;
-	TickType_t ticktimes;
-} queue_t;
-
-/*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
 

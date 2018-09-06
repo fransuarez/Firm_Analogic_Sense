@@ -5,29 +5,48 @@
  *      Author: Seba
  */
 
-#include "services_Shell.h"
 #include "ntshell.h"
 #include "ciaaUART.h"
 #include "ciaaIO.h"
 #include "usrcmd.h"
+#include "shellManager.h"
 
-ntshell_t 		ntshell;
-command_table_t *ptr_commandList;
+//Definicion del RTOS a usar --------------------------------------------------
+#ifdef  USE_RTOS
+#include "services_config.h"
+#endif
 
-static modein_t		inputDatos= CONSOLA;
-static char 		buffInpProg[L_FIFO_UART];
-static char * 		auxargv [AUX_ARGC];
-static int 			auxargc;
-static int			nOverFullCS;
+#define L_FIFO_UART 		300
+#define AUX_ARGC			32
+
+#define MSG_BIENVENIDA		"User command example for NT-Shell.\r\n"
+#define MSG_PROMPT 			"LPC824>"
+#define MSG_MODO_DEBUG 		"\r\n->"
+#define MSG_MODO_STANDARD 	"\r\n >"
+#define MSG_MODO_CONTINUO 	" "
+#define MSG_MODO_DEFAULT  	"\r\n "
+
+#define TOMAR_SEMAFORO_CONSOLA		xSemaphoreTake( MUTEX_CONSOLA, TIMEOUT_MUTEX_CONSOLA)
+#define LIBERAR_SEMAFORO_CONSOLA	xSemaphoreGive( MUTEX_CONSOLA )
+
+extern xTaskHandle 			HANDLER_CONSOLA;
+extern xSemaphoreHandle 	MUTEX_CONSOLA;
+extern UBaseType_t*			STACKS_TAREAS;
+
+static modein_t				inputDatos= CONSOLA;
+static char 				buffInpProg[L_FIFO_UART];
+static char * 				auxargv [AUX_ARGC];
+static int 					auxargc;
+static int					nOverFullCS;
 
 /* Funciones privadas ***************************************************/
-static int serial_read(char *buf, int cnt, void *extobj);
-static int serial_write(const char *buf, int cnt, void *extobj);
-static int user_callback(const char *text, void *extobj);
+static int serial_read		(char *buf, int cnt, void *extobj);
+static int serial_write		(const char *buf, int cnt, void *extobj);
+static int user_callback	(const char *text, void *extobj);
 //static int chequearUART (void) ;
 
-/* Funcioines publicas **************************************************/
-#ifdef USE_RTOS
+/* Funciones publicas **************************************************/
+
 void taskConsola (void * parametrosTarea)
 {
     void *extobj = 0;
@@ -35,62 +54,57 @@ void taskConsola (void * parametrosTarea)
 
     ciaaUARTInit();
     ciaaIOInit();
-    uartSendStr("User command example for NT-Shell.\r\n");
+    uartSendStr(MSG_BIENVENIDA);
     ntshell_init(&nts, serial_read, serial_write, user_callback, extobj);
-    ntshell_set_prompt(&nts, "LPC824>");
+    ntshell_set_prompt(&nts, MSG_PROMPT);
     printConsola(nts.prompt, MP_DEF);
 
 	while(1)
 	{
-		*(ptrstack+2)= uxTaskGetStackHighWaterMark( pxCreatedTask3 );
-		xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
+#ifdef USE_RTOS
+		ACTUALIZAR_STACK_TAREA( HANDLER_CONSOLA, ID_STACK_CONSOLA );
+		TOMAR_SEMAFORO_CONSOLA;
+#endif
 		ntshell_execute(&nts);
 
 		if (inputDatos== INTERNO) {
-			//xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
 			user_callback ((const char *) auxargv[0], (void *) &auxargc);
 			inputDatos= CONSOLA;
-			//xSemaphoreGive( mutexConsola );
 		}
-		xSemaphoreGive( mutexConsola );
 
-		//vTaskDelay(10);
-		taskYIELD();
+#ifdef USE_RTOS
+		LIBERAR_SEMAFORO_CONSOLA;
+		LIBERAR_TAREA;
+#endif
 	}
 }
-#endif
 
 void printConsola(const char * texto, modep_t mode)
 {
-	//taskENTER_CRITICAL();
-	if (mutexConsola == NULL) return;
-
-	xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
-	//vTaskSuspendAll();
-
-	//if (chequearUART()!=0);
-		//UARTputs (&consola, "\n\r"); //-->Correccion de Cola Tx
+#ifdef USE_RTOS
+	TOMAR_SEMAFORO_CONSOLA;
+#endif
 
 	switch (mode) {
 	    case MP_DEB:
-	    	uartSendStr("\r\n->");
+	    	uartSendStr(MSG_MODO_DEBUG);
 	    	break;
 	    case MP_EST:
-	    	uartSendStr("\r\n >");
+	    	uartSendStr(MSG_MODO_STANDARD);
 	    	break;
 	    case MP_SIN_NL:
-	    	uartSendChar(' ');
+	    	uartSendStr(MSG_MODO_CONTINUO);
 	    	break;
 	    case MP_DEF:
 	    default:
-	    	uartSendStr("\r\n ");
+	    	uartSendStr(MSG_MODO_DEFAULT);
 	}
 	if (uartSendStr(texto) == 0)
 		nOverFullCS++;
-		//while (1);
 
-	//xTaskResumeAll();
-	xSemaphoreGive( mutexConsola );
+#ifdef USE_RTOS
+	LIBERAR_SEMAFORO_CONSOLA;
+#endif
 }
 
 int sendConsola (char * string)
@@ -139,14 +153,19 @@ static int serial_read(char *buf, int cnt, void *extobj)
 static int serial_write(const char *buf, int cnt, void *extobj)
 {
 	int i = 0;
-	xSemaphoreTake( mutexConsola, ( portTickType ) 10  );
-	//if (chequearUART()!=0);
+#ifdef USE_RTOS
+	TOMAR_SEMAFORO_CONSOLA;
+#endif
 
     for (; i < cnt; i++)
     {
     	uartSendChar(buf[i]);
     }
-    xSemaphoreGive( mutexConsola );
+
+#ifdef USE_RTOS
+	LIBERAR_SEMAFORO_CONSOLA;
+#endif
+
     return cnt;
 }
 

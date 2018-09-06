@@ -61,7 +61,7 @@
  * @param:  ENEABLE_AI, DISABLE_AI, ENEABLE_AO, DISABLE_AO
  * @return: none
 */
-void analogConfig( uint8_t config ){
+void analogConfig( analogConfig_t config ){
 
    switch(config){
 
@@ -131,9 +131,9 @@ void analogConfig( uint8_t config ){
  * @param   AI0 ... AIn
  * @return  analog value
  */
-uint16_t analogRead( uint8_t analogInput ){
+uint16_t analogRead( AnalogIOMap_t analogInput ){
 
-   uint8_t lpcAdcChannel = 66 - analogInput;
+   uint8_t lpcAdcChannel = AO - analogInput;
    uint16_t analogValue = 0;
 
    Chip_ADC_EnableChannel(LPC_ADC0, lpcAdcChannel, ENABLE);
@@ -153,7 +153,7 @@ uint16_t analogRead( uint8_t analogInput ){
  * @param   value: analog value to be writen in the DAC, from 0 to 1023
  * @return  none
  */
-void analogWrite( uint8_t analogOutput, uint16_t value ){
+void analogWrite( AnalogIOMap_t analogOutput, uint16_t value ){
 
    if( analogOutput == AO ){
       if( value > 1023 ){

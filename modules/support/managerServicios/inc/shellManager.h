@@ -15,22 +15,7 @@
 
 #define USE_RTOS
 
-//Definicion del RTOS a usar --------------------------------------------------
-#ifdef  USE_RTOS
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
-
-extern xTaskHandle 			pxCreatedTask3;
-extern xSemaphoreHandle 	mutexConsola;
-extern unsigned long *		ptrstack;
-
-#endif
-
 /************************************************************************/
-#define L_FIFO_UART 	300
-#define AUX_ARGC		32
 
 typedef struct
 {
@@ -57,14 +42,10 @@ typedef enum modeinput
 	FIN_PROCESO
 
 } modein_t;
-/************************************************************************/
-extern command_table_t * ptr_commandList;
-xSemaphoreHandle mutexConsola;
 
-//extern const command_table_t cmdlist[];
 /************************************************************************/
-void 	taskConsola ( void * parametrosTarea );
-void 	printConsola (const char *texto, modep_t modo_impresion);
-int 	sendConsola  (char *);
+void 	taskConsola  ( void * parametrosTarea );
+void 	printConsola ( const char *texto, modep_t modo_impresion );
+int 	sendConsola  ( char * );
 
 #endif /* CONSOLA_H_ */
