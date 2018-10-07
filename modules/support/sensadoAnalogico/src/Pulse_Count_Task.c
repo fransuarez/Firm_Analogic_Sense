@@ -1,6 +1,4 @@
-#include "board.h"
-#include "ciaaAIN.h"
-
+#include "ciaaTEC.h"
 #include "auxiliar_gpios_def.h"
 
 // ------ Private constants -----------------------------------
@@ -18,21 +16,6 @@ uint32_t FrecuenciaFlancos;
 uint32_t TotalFlancos_Tec0; // Si hay un flanco de bajada es 1
 LedOut led;
 
-void DIGITAL_KEY_Init ( void )
-{
-    Chip_PININT_Init( LPC_GPIO_PIN_INT );
-    Chip_SCU_GPIOIntPinSel( ID_IRQ_PIN_INT0, ID_PORT_TEC1, ID_PIN_TEC1 );
-    //Chip_PININT_SetPinModeLevel(LPC_GPIO_PIN_INT, PININTCH0);
-    Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH0 );
-    Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH0 );
-    Chip_PININT_EnableIntLow  ( LPC_GPIO_PIN_INT, PININTCH0 );
-    Chip_PININT_EnableIntHigh ( LPC_GPIO_PIN_INT, PININTCH0 );
-	/* Set lowest priority for RIT */
-	NVIC_SetPriority(PIN_INT0_IRQn, (1<<__NVIC_PRIO_BITS) - 1);
-
-	/* Enable IRQ for RIT */
-	NVIC_EnableIRQ(PIN_INT0_IRQn);
-}
 
 void PULSE_COUNT_TASK_Init (void)
 {
@@ -55,7 +38,7 @@ uint8_t PULSE_COUNT_TASK_UpdateFallings (void)
 	Test3 = Test2;
 	Test2 = Test1;
 	Test1 = Test0;
-	Test0 = Buttons_GetStatus();
+	Test0 = ciaaKEYS_Status();
 	//Test0 = digitalRead(TEC3);
 	uint8_t retval;
 
@@ -78,30 +61,28 @@ uint8_t PULSE_COUNT_TASK_UpdateFallings (void)
 
 void PULSE_COUNT_TASK_UpdateFreq (void)
 {
-
-		// se muestran los resultados
-		if(TotalFlancos_Tec0<11)
-		{
-			led = MENOR11;
-		}
-		if((TotalFlancos_Tec0>10)&&(TotalFlancos_Tec0<21))
-		{
-			led = MENOR21;
-		}
-		if(TotalFlancos_Tec0>20)
-		{
-			led = MAYOR20;
-		}
-		if(TotalFlancos_Tec0/(TotalCalls/1000) == 0)
-		{
-			FrecuenciaFlancos = 0;
-		}
-		else
-		{
-			FrecuenciaFlancos = 1/(TotalFlancos_Tec0/(TotalCalls/1000));
-		}
-		TotalFlancos_Tec0 = 0;
-
+	// se muestran los resultados
+	if(TotalFlancos_Tec0<11)
+	{
+		led = MENOR11;
+	}
+	if((TotalFlancos_Tec0>10)&&(TotalFlancos_Tec0<21))
+	{
+		led = MENOR21;
+	}
+	if(TotalFlancos_Tec0>20)
+	{
+		led = MAYOR20;
+	}
+	if(TotalFlancos_Tec0/(TotalCalls/1000) == 0)
+	{
+		FrecuenciaFlancos = 0;
+	}
+	else
+	{
+		FrecuenciaFlancos = 1/(TotalFlancos_Tec0/(TotalCalls/1000));
+	}
+	TotalFlancos_Tec0 = 0;
 }
 
 void LEVEL_KEY_Detec_From_ISR ( queue_t* dataToSend )
@@ -144,11 +125,11 @@ void VALUE_ANALOG_Read_Inputs ( signal_t * dataToSend )
 	dataToSend->readVal= valAnalogicInp;
 
 	// leo el termistor:
-	valAnalogicInp[0]= ciaaAINRead(0);
+	valAnalogicInp[0]= ADC_read(0);
 
 	// leo la termocupla:
-	valAnalogicInp[1]= ciaaAINRead(1);
+	valAnalogicInp[1]= ADC_read(1);
 
 	// leo el auxiliar 1:
-	valAnalogicInp[2]= ciaaAINRead(2);
+	valAnalogicInp[2]= ADC_read(2);
 }

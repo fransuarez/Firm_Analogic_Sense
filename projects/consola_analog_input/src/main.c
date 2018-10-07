@@ -47,7 +47,6 @@
 
 /*==================[inclusions]=============================================*/
 #include "main.h"
-#include "ciaaAIN.h"
 #include <stdio.h>
 #include "services_config.h"
 #include "Pulse_Count_Task.h"
@@ -62,11 +61,8 @@ static void initHardware(void)
 {
     SystemCoreClockUpdate();
 
-    Board_Init();
+    //Board_Init();
 
-    ciaaAINInit();
-
-    DIGITAL_KEY_Init();
 }
 
 int main (void)

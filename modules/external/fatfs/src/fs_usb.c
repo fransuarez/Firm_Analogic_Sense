@@ -29,8 +29,8 @@
  * this code.
  */
 
-#include "fsusb_cfg.h"
-#include "board.h"
+//#include "fsusb_cfg.h"
+//#include "board.h"
 #include "chip.h"
 
 /*****************************************************************************
@@ -58,125 +58,139 @@ static DISK_HANDLE_T *hDisk;
  ****************************************************************************/
 
 /* Initialize Disk Drive */
-DSTATUS disk_initialize(BYTE drv)
+DSTATUS disk_initialize( BYTE drv )
 {
-	if (drv) {
-		return STA_NOINIT;				/* Supports only single drive */
-	}
-	/*	if (Stat & STA_NODISK) return Stat;	*//* No card in the socket */
+    if ( drv )
+    {
+        return STA_NOINIT;				/* Supports only single drive */
+    }
+    /*	if (Stat & STA_NODISK) return Stat;	*//* No card in the socket */
 
-	if (Stat != STA_NOINIT) {
-		return Stat;					/* card is already enumerated */
+    if ( Stat != STA_NOINIT )
+    {
+        return Stat;					/* card is already enumerated */
 
-	}
+    }
 
-	#if !_FS_READONLY
-	FSUSB_InitRealTimeClock();
-	#endif
+#if !_FS_READONLY
+    FSUSB_InitRealTimeClock();
+#endif
 
-	/* Initialize the Card Data Strucutre */
-	hDisk = FSUSB_DiskInit();
+    /* Initialize the Card Data Strucutre */
+    hDisk = FSUSB_DiskInit();
 
-	/* Reset */
-	Stat = STA_NOINIT;
+    /* Reset */
+    Stat = STA_NOINIT;
 
-	FSUSB_DiskInsertWait(hDisk); /* Wait for card to be inserted */
+    FSUSB_DiskInsertWait( hDisk ); /* Wait for card to be inserted */
 
-	/* Enumerate the card once detected. Note this function may block for a little while. */
-	if (!FSUSB_DiskAcquire(hDisk)) {
-		DEBUGOUT("Disk Enumeration failed...\r\n");
-		return Stat;
-	}
+    /* Enumerate the card once detected. Note this function may block for a little while. */
+    if ( !FSUSB_DiskAcquire( hDisk ) )
+    {
+        DEBUGOUT( "Disk Enumeration failed...\r\n" );
+        return Stat;
+    }
 
-	Stat &= ~STA_NOINIT;
-	return Stat;
+    Stat &= ~STA_NOINIT;
+    return Stat;
 
 }
 
 /* Disk Drive miscellaneous Functions */
-DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
+DRESULT disk_ioctl( BYTE drv, BYTE ctrl, void *buff )
 {
-	DRESULT res;
+    DRESULT res;
 
-	if (drv) {
-		return RES_PARERR;
-	}
-	if (Stat & STA_NOINIT) {
-		return RES_NOTRDY;
-	}
+    if ( drv )
+    {
+        return RES_PARERR;
+    }
+    if ( Stat & STA_NOINIT )
+    {
+        return RES_NOTRDY;
+    }
 
-	res = RES_ERROR;
+    res = RES_ERROR;
 
-	switch (ctrl) {
-	case CTRL_SYNC:	/* Make sure that no pending write process */
-		if (FSUSB_DiskReadyWait(hDisk, 50)) {
-			res = RES_OK;
-		}
-		break;
+    switch ( ctrl )
+    {
+        case CTRL_SYNC:	/* Make sure that no pending write process */
+            if ( FSUSB_DiskReadyWait( hDisk, 50 ) )
+            {
+                res = RES_OK;
+            }
+            break;
 
-	case GET_SECTOR_COUNT:	/* Get number of sectors on the disk (DWORD) */
-		*(DWORD *) buff = FSUSB_DiskGetSectorCnt(hDisk);
-		res = RES_OK;
-		break;
+        case GET_SECTOR_COUNT:	/* Get number of sectors on the disk (DWORD) */
+            *( DWORD * ) buff = FSUSB_DiskGetSectorCnt( hDisk );
+            res = RES_OK;
+            break;
 
-	case GET_SECTOR_SIZE:	/* Get R/W sector size (WORD) */
-		*(WORD *) buff = FSUSB_DiskGetSectorSz(hDisk);
-		res = RES_OK;
-		break;
+        case GET_SECTOR_SIZE:	/* Get R/W sector size (WORD) */
+            *( WORD * ) buff = FSUSB_DiskGetSectorSz( hDisk );
+            res = RES_OK;
+            break;
 
-	case GET_BLOCK_SIZE:/* Get erase block size in unit of sector (DWORD) */
-		*(DWORD *) buff = FSUSB_DiskGetBlockSz(hDisk);
-		res = RES_OK;
-		break;
+        case GET_BLOCK_SIZE:/* Get erase block size in unit of sector (DWORD) */
+            *( DWORD * ) buff = FSUSB_DiskGetBlockSz( hDisk );
+            res = RES_OK;
+            break;
 
-	default:
-		res = RES_PARERR;
-		break;
-	}
+        default:
+            res = RES_PARERR;
+            break;
+    }
 
-	return res;
+    return res;
 }
 
 /* Read Sector(s) */
-DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
+DRESULT disk_read( BYTE drv, BYTE *buff, DWORD sector, BYTE count )
 {
-	if (drv || !count) {
-		return RES_PARERR;
-	}
-	if (Stat & STA_NOINIT) {
-		return RES_NOTRDY;
-	}
+    if ( drv || !count )
+    {
+        return RES_PARERR;
+    }
+    if ( Stat & STA_NOINIT )
+    {
+        return RES_NOTRDY;
+    }
 
-	if (FSUSB_DiskReadSectors(hDisk, buff, sector, count)) {
-		return RES_OK;
-	}
+    if ( FSUSB_DiskReadSectors( hDisk, buff, sector, count ) )
+    {
+        return RES_OK;
+    }
 
-	return RES_ERROR;
+    return RES_ERROR;
 }
 
 /* Get Disk Status */
-DSTATUS disk_status(BYTE drv)
+DSTATUS disk_status( BYTE drv )
 {
-	if (drv) {
-		return STA_NOINIT;	/* Supports only single drive */
-	}
-	return Stat;
+    if ( drv )
+    {
+        return STA_NOINIT;	/* Supports only single drive */
+    }
+    return Stat;
 }
 
 /* Write Sector(s) */
-DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
+DRESULT disk_write( BYTE drv, const BYTE *buff, DWORD sector, BYTE count )
 {
 
-	if (drv || !count) {
-		return RES_PARERR;
-	}
-	if (Stat & STA_NOINIT) {
-		return RES_NOTRDY;
-	}
+    if ( drv || !count )
+    {
+        return RES_PARERR;
+    }
+    if ( Stat & STA_NOINIT )
+    {
+        return RES_NOTRDY;
+    }
 
-	if (FSUSB_DiskWriteSectors(hDisk, (void *) buff, sector, count)) {
-		return RES_OK;
-	}
+    if ( FSUSB_DiskWriteSectors( hDisk, ( void * ) buff, sector, count ) )
+    {
+        return RES_OK;
+    }
 
-	return RES_ERROR;
+    return RES_ERROR;
 }

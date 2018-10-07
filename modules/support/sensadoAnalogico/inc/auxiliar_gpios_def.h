@@ -9,20 +9,6 @@
 #define MODULES_SUPPORT_SENSADOANALOGICO_INC_AUXILIAR_GPIOS_DEF_H_
 
 /*==================[macros]=================================================*/
-#define ID_IRQ_PIN_INT0	0
-#define ID_IRQ_PIN_INT1	1
-#define ID_IRQ_PIN_INT2	2
-#define ID_IRQ_PIN_INT3	3
-
-#define ID_PORT_TEC1	0
-#define ID_PORT_TEC2	0
-#define ID_PORT_TEC3	0
-#define ID_PORT_TEC4	1
-
-#define ID_PIN_TEC1		4
-#define ID_PIN_TEC2		8
-#define ID_PIN_TEC3		9
-#define ID_PIN_TEC4		9
 
 #define FIRSTLED	   	2
 #define SELECT_LED(A) (A+FIRSTLED)

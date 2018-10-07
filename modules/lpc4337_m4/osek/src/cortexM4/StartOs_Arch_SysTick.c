@@ -58,7 +58,7 @@
 /*==================[inclusions]=============================================*/
 #include "Os_Internal_Arch_Cpu.h"
 #if (CPU == lpc4337)
-#include "board.h"
+//#include "board.h"
 #endif
 
 /*==================[macros and definitions]=================================*/

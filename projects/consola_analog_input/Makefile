@@ -41,9 +41,9 @@ PROJECT_MODULES := \
                    modules/external/freertos 		\
                    modules/external/tinyShell 		\
                    modules/external/colasCirculares \
-                   modules/$(TARGET)/ciaa_suport	\
+                   modules/$(TARGET)/ciaa_support	\
+                   modules/$(TARGET)/api_support	\
                    modules/$(TARGET)/base 			\
-                   modules/$(TARGET)/board 			\
                    modules/$(TARGET)/chip			  
 
 # source files folder

@@ -81,7 +81,7 @@ static void taskControlLed(void * a)
 		if( pdTRUE == xQueueReceive( queueSigLed, &dataRecLed, TWAIT )){
 			if(dataRecLed.deltaT >0){
 				tOnLeds[dataRecLed.led-FIRSTLED]= (int32_t)dataRecLed.deltaT;
-				Board_LED_Set( dataRecLed.led, true );
+				ciaaLED_Set( dataRecLed.led, true );
 
 				// Si uso esta funcion tengo que reservar el doblre de stack a la tarea... Ver como reemplazar
 				sprintf(sToSend, "[P%d, %lu mS]\r\n", dataRecLed.led-FIRSTLED+1, dataRecLed.deltaT);
@@ -92,7 +92,7 @@ static void taskControlLed(void * a)
 			if( tOnLeds[i] > 0 )
 				tOnLeds[i] -= TWAIT;
 			else
-				Board_LED_Set( i+FIRSTLED, false );
+				ciaaLED_Set( i+FIRSTLED, false );
 		}
 	}
 }
@@ -149,7 +149,7 @@ static void initHardware(void)
 
     Board_Init();
 
-    ciaaAINInit();
+    ADC_init();
 
     //Board_Buttons_Init();
     Chip_PININT_Init( LPC_GPIO_PIN_INT );

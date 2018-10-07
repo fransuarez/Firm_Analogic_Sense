@@ -1,13 +1,13 @@
 Tareas proximas TP profesional:
 ----------------------------------------
 
-1- Funcion que tome un dato de consola y lo utlice para dato de simulacion de la funcion.
-2- Funcion de de test que al ejecutarla muestre entrada y resultado de validacion de calculos 
-   (repo tien lib de operaciones matematicas dsp). Por ahora tengo las del test.
-3- Funcion que permita tomar un archivo para el procesamiento de datos continuos. (ver si sirve ahora, el repo tiene librerias de manejo de archivos)
-5- Funcion que muestre el monitoreo de valores de entradas analogicas (usar ciaa_suport)
-4- Funcion que arme una tabla con valores de distintas entradas y salidas configurables.
-6- Rutinas y reloj RTC con implementacion de timers para ejecutar eventos por tiempo (comparar con estructura de tp facu y con rutinas actuales del repo de ridolfi)
+1- Funcion que tome un dato de consola y lo utlice para dato de simulacion de la funcion.  > NO ahora
+2- Funcion de de test que al ejecutarla muestre entrada y resultado de validacion de calculos  >  Por ahora tengo las del test.
+	(repo tien lib de operaciones matematicas dsp).
+3- Funcion que permita tomar un archivo para el procesamiento de datos continuos. 
+	(ver si sirve ahora, el repo tiene librerias de manejo de archivos)
+5- Funcion que muestre el monitoreo de valores de entradas analogicas.
+4- Funcion que arme una tabla con valores de distintas entradas y salidas configurables. Es a modo de visualización por terminal. > NO ahora
 
 
 Pasos:
@@ -19,85 +19,69 @@ Pasos:
 	.Esto se debera hacer cada 3 segundos y solo con las IO activadas.
 4- Implementar el reloj RTC o como se llame el periferico, para registrar en el log.
 5- Implementar el guardado de N registros por vez en memoria (en principio voy a usar la eeprom interna).
+	Tps:
 	.Esto se debera a hacer cada 1 minuto o mas ya que los procesos son lentos. 
 	.Solo debe usar una pequeña porcion de la memoria disponible.
-	.La cantidad de registros grabados se indicara en el haeder del espacio de archivo. Es por esto que se podria usar formato FAT que ya predefine
-	este tipo de cosas.
-	.Al momento de llegar al final del archivo se comenzara a reescribir desde el principio? si es asi seria conveniente tener un registro de principio de 
-	registros y final. Se lo puede pensar como una lista enlazada pero suponiendo cada registro una posicion unica.
+	.La cantidad de registros grabados se indicara en el haeder del espacio de archivo. 
+	 Es por esto que se podria usar formato FAT que ya predefine este tipo de cosas.  > Muy pesado para una eeprom > NO
+	.Al momento de llegar al final del archivo se comenzara a reescribir desde el principio? 
+	 Si es asi seria conveniente tener un registro de principio de registros y final. 
+	.Se lo puede pensar como una lista enlazada pero suponiendo cada registro una posicion unica.
 	
-6- Agregar algoritmos para medir conductividad en el primer modelo.¿? Por el momento hacerlo medio hardcodeado.
+6- Agregar algoritmos para medir conductividad en el primer modelo.¿? Por el momento hacerlo medio hardcodeado. > NO
 
 7- Reservar una arreglo con objetos GPIO con sus valores anterior y actual. Tambien con un parametro de activacion, y estado de salud.
 8- Los periodos de las tareas se manejaran con delay internos y timeouts. En funcion del estado donde este cada tarea determinara los delay para 
 	la proxima llamada a la misma. De este modo se puede gestionar cuando ejecutar cada una.
+	Ver rutina: void FreeRTOSDelay (uint32_t ms)
+
 9- Los timers los puedo usar para las tareas programadas. Serian utiles en casos donde se debe activar una accion repetitiva o una alarma.
 
-Nota 1: armar un nuevo proyecto para independizarlo del de test de consola que esta bueno asi como esta.
+Nota 1: armar un nuevo proyecto para independizarlo del de test de consola que esta bueno asi como esta. > Hecho
 Nota 2: Ver los cambios/updates en las funciones del repo de Ridolfi
-Nota 3: Mover las funciones de manejo de manejo de señales GPIO a la libreria correspondiente.
+Nota 3: Mover las funciones drivers de señales GPIO a la libreria correspondiente.
 
+-------------------------------------------------------------------------------------------------------------------------------------------
 Obs 1: Pensar siempre como una implementacion alejada lo mas posible de este RTOS. 
-Obs 2: El menaje de variables deberia ser lo mas local posible a cada modulo. -> lo ideal seria que pudieran existir de modo indepndiente cada una!
-
+Obs 2: El manejo de variables deberia ser lo mas local posible a cada modulo. -> lo ideal seria que pudieran existir de modo indepndiente cada una!
 
 
 Open OCD 
+--------------
 RUN -> CMD -> CD C:\Users\fran\Desktop\proyecto_final\Firm_Analogic_Sense\
 make openocd 
 Nota: usar el puerto USB primero de la izquierda. Sino hay que reconfigurar los drivers para los otros puertos.
 
-
-Hola, 
+EEPROM
+-----------
 Además de los comandos IAP que te permite escribir en la memoria flash, el LPC4337 tiene una memoria EEPROM de 16kB. 
 Con LPCOpen se usa así (ojo no está 100% probado):
 
-	uint32_t * pEEData = (uint32_t *)EEPROM_ADDRESS(0, 4); /* dirección de la palabra a escribir */
+/* dirección de la palabra a escribir */
 
-	Chip_EEPROM_Init(LPC_EEPROM);
+	uint32_t * pEEData = (uint32_t *)EEPROM_ADDRESS(0, 4); 
 
-#if 1 /* programar la EEPROM */
-	Chip_EEPROM_SetAutoProg(LPC_EEPROM, EEPROM_AUTOPROG_AFT_1WORDWRITTEN);
+	Chip_EEPROM_Init( LPC_EEPROM );
 
+/* programar la EEPROM */
+
+	Chip_EEPROM_SetAutoProg( LPC_EEPROM,  EEPROM_AUTOPROG_AFT_1WORDWRITTEN );
 	*pEEData = 0xABCDEF01;
 
-	Chip_EEPROM_WaitForIntStatus(LPC_EEPROM, EEPROM_INT_ENDOFPROG);
-#endif
+	Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+	
+/* para borrar */
 
-#define BORRAR
+	Chip_EEPROM_EraseProgramPage( LPC_EEPROM );
 
-#ifdef BORRAR /* para borrar */
-	Chip_EEPROM_EraseProgramPage(LPC_EEPROM);
-#endif
-
+	
 Links tips freeRTOS:
+--------------------------
 https://www.freertos.org/RTOS-software-timer.html
 https://www.freertos.org/FreeRTOS_Support_Forum_Archive/March_2011/freertos_LPC_1758_1768_IAP_In_Application_Programming_4432785.html
 https://www.freertos.org/FreeRTOS-Coding-Standard-and-Style-Guide.html#NamingConventions
 http://web.ist.utl.pt/~ist11993/FRTOS-API/group___timer.html#pvTimerGetTimerID
+https://community.nxp.com/docs/DOC-332152
 
-
-
-Coeficientes Modelo de Scheinart
--------------------------------------------
-A= -5.366×10(-3)
-B=  1.260×10(-3)
-C= -3.623×10(-6)
-
-−0.370265323+-0.370528705
-
-s= 0.904827568
-t= 0.064100591
-
-s^3= 0.740794028
-t^3= 0.000263382
-
-A= 0.740530646
-
-0.504618113
-1.371694248
-
-y/2= 0.370265323
-x=   0.370002257
 
 

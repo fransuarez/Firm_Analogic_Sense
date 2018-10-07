@@ -5,7 +5,10 @@
  *      Author: fran
  */
 
-#include "ciaaAIN.h"
+#include "api_ADC.h"
+#include "ciaaTEC.h"
+#include "ciaaLED.h"
+
 #include "shellManager.h"
 #include "auxiliar_gpios_def.h"
 #include "services_config.h"
@@ -25,6 +28,8 @@ void taskControlOutputs (void * a)
 	char sToSend[30]="Aun esta vacio";
 	uint8_t  i, aux;
 
+	ciaaLED_Init();
+
 	while (1)
 	{
 		ACTUALIZAR_STACK_TAREA( HANDLER_MGR_OUTPUTS, ID_STACK_MGR_OUTPUT );
@@ -37,7 +42,7 @@ void taskControlOutputs (void * a)
 				aux &= dataRecLed.led;
 				if( aux )
 				{
-					Board_LED_Set( SELECT_LED(i), true );
+					ciaaLED_Set( SELECT_LED(i), true );
 
 					sprintf( sToSend, "[AI%d = %i uni]\r\n", i, dataRecLed.readVal[i] );
 					printConsola( sToSend, MP_DEB );
@@ -48,7 +53,7 @@ void taskControlOutputs (void * a)
 		{
 			for(i=0; i<4; i++)
 			{
-				Board_LED_Set( SELECT_LED(i), false );
+				ciaaLED_Set( SELECT_LED(i), false );
 			}
 		}
 	}
@@ -58,6 +63,8 @@ void taskControlInputs (void * a)
 {
 	queue_t dataRecKey;
 	signal_t dataToSend;
+
+	ciaaKEYS_Init();
 
 	while (1)
 	{
@@ -89,10 +96,12 @@ void GPIO0_IRQHandler (void)
 	portEND_SWITCHING_ISR( xSwitchRequired );
 }
 
+// Por el momento no voy a usar esta irq porque es muy sensible a los cambios por ruido en la AIN.
 void ADC0_IRQHandler (void)
 {
 	//portBASE_TYPE xSwitchRequired;
-	ADC0_IRQHandler_Suport();
+	ADC_IRQ0Support();
 	NVIC_ClearPendingIRQ( ADC0_IRQn );
 	//portEND_SWITCHING_ISR( xSwitchRequired );
 }
+

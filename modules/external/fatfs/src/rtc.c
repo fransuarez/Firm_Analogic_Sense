@@ -12,69 +12,71 @@
 /-------------------------------------------------------------------------*/
 
 #include "chip.h"
-#include "board.h"
+//#include "board.h"
 #include "rtc.h"
 
 
-int rtc_initialize (void)
+int rtc_initialize ( void )
 {
-	static int init;
-	RTC_TIME_T rtcTime;
+    static int init;
+    RTC_TIME_T rtcTime;
 
-	if (init) /* Already initialized */
-		return 1;
+    if ( init ) /* Already initialized */
+    {
+        return 1;
+    }
 
-	/* RTC Block section ------------------------------------------------------ */
-	Chip_RTC_Init(LPC_RTC);
+    /* RTC Block section ------------------------------------------------------ */
+    Chip_RTC_Init( LPC_RTC );
 
-	/* Set current time for RTC */
-	/* Current time is 8:00:00PM, 2013-01-31 */
-	rtcTime.time[RTC_TIMETYPE_SECOND]     = 0;
-	rtcTime.time[RTC_TIMETYPE_MINUTE]     = 0;
-	rtcTime.time[RTC_TIMETYPE_HOUR]       = 20;
-	rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = 31;
-	rtcTime.time[RTC_TIMETYPE_MONTH]      = 1;
-	rtcTime.time[RTC_TIMETYPE_YEAR]       = 2013;
-	Chip_RTC_SetFullAlarmTime(LPC_RTC, &rtcTime);
+    /* Set current time for RTC */
+    /* Current time is 8:00:00PM, 2013-01-31 */
+    rtcTime.time[RTC_TIMETYPE_SECOND]     = 0;
+    rtcTime.time[RTC_TIMETYPE_MINUTE]     = 0;
+    rtcTime.time[RTC_TIMETYPE_HOUR]       = 20;
+    rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = 31;
+    rtcTime.time[RTC_TIMETYPE_MONTH]      = 1;
+    rtcTime.time[RTC_TIMETYPE_YEAR]       = 2013;
+    Chip_RTC_SetFullAlarmTime( LPC_RTC, &rtcTime );
 
-	/* Enable rtc (starts increase the tick counter and second counter register) */
-	Chip_RTC_Enable(LPC_RTC, ENABLE);
-	init = 1;
+    /* Enable rtc (starts increase the tick counter and second counter register) */
+    Chip_RTC_Enable( LPC_RTC, ENABLE );
+    init = 1;
 
-	return 1;
+    return 1;
 }
 
-int rtc_gettime (RTC *rtc)
+int rtc_gettime ( RTC *rtc )
 {
-	RTC_TIME_T rtcTime;
+    RTC_TIME_T rtcTime;
 
-	Chip_RTC_GetFullTime(LPC_RTC, &rtcTime);
+    Chip_RTC_GetFullTime( LPC_RTC, &rtcTime );
 
-	rtc->sec = rtcTime.time[RTC_TIMETYPE_SECOND];
-	rtc->min = rtcTime.time[RTC_TIMETYPE_MINUTE];
-	rtc->hour = rtcTime.time[RTC_TIMETYPE_HOUR];
-	rtc->wday = rtcTime.time[RTC_TIMETYPE_DAYOFWEEK];
-	rtc->mday = rtcTime.time[RTC_TIMETYPE_DAYOFMONTH];
-	rtc->month = rtcTime.time[RTC_TIMETYPE_MONTH];
-	rtc->year = rtcTime.time[RTC_TIMETYPE_YEAR];
-  return 1;
+    rtc->sec = rtcTime.time[RTC_TIMETYPE_SECOND];
+    rtc->min = rtcTime.time[RTC_TIMETYPE_MINUTE];
+    rtc->hour = rtcTime.time[RTC_TIMETYPE_HOUR];
+    rtc->wday = rtcTime.time[RTC_TIMETYPE_DAYOFWEEK];
+    rtc->mday = rtcTime.time[RTC_TIMETYPE_DAYOFMONTH];
+    rtc->month = rtcTime.time[RTC_TIMETYPE_MONTH];
+    rtc->year = rtcTime.time[RTC_TIMETYPE_YEAR];
+    return 1;
 }
 
-int rtc_settime (const RTC *rtc)
+int rtc_settime ( const RTC *rtc )
 {
-	RTC_TIME_T rtcTime;
+    RTC_TIME_T rtcTime;
 
-	rtcTime.time[RTC_TIMETYPE_SECOND]     = rtc->sec;
-	rtcTime.time[RTC_TIMETYPE_MINUTE]     = rtc->min;
-	rtcTime.time[RTC_TIMETYPE_HOUR]       = rtc->hour;
-	rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = rtc->wday;
-	rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = rtc->mday;
-	rtcTime.time[RTC_TIMETYPE_MONTH]      = rtc->month;
-	rtcTime.time[RTC_TIMETYPE_YEAR]	      = rtc->year;
+    rtcTime.time[RTC_TIMETYPE_SECOND]     = rtc->sec;
+    rtcTime.time[RTC_TIMETYPE_MINUTE]     = rtc->min;
+    rtcTime.time[RTC_TIMETYPE_HOUR]       = rtc->hour;
+    rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = rtc->wday;
+    rtcTime.time[RTC_TIMETYPE_DAYOFMONTH] = rtc->mday;
+    rtcTime.time[RTC_TIMETYPE_MONTH]      = rtc->month;
+    rtcTime.time[RTC_TIMETYPE_YEAR]	      = rtc->year;
 
-	Chip_RTC_GetFullTime(LPC_RTC, &rtcTime);
+    Chip_RTC_GetFullTime( LPC_RTC, &rtcTime );
 
-  return 1;
+    return 1;
 }
 
 /**
@@ -86,16 +88,16 @@ int rtc_settime (const RTC *rtc)
  */
 DWORD get_fattime()
 {
-	RTC rtc;
+    RTC rtc;
 
-	/* Get local time */
-	rtc_gettime(&rtc);
+    /* Get local time */
+    rtc_gettime( &rtc );
 
-	/* Pack date and time into a DWORD variable */
-	return ((DWORD) (rtc.year - 1980) << 25)
-		   | ((DWORD) rtc.month << 21)
-		   | ((DWORD) rtc.mday << 16)
-		   | ((DWORD) rtc.hour << 11)
-		   | ((DWORD) rtc.min << 5)
-		   | ((DWORD) rtc.sec >> 1);
+    /* Pack date and time into a DWORD variable */
+    return ( ( DWORD ) ( rtc.year - 1980 ) << 25 )
+           | ( ( DWORD ) rtc.month << 21 )
+           | ( ( DWORD ) rtc.mday << 16 )
+           | ( ( DWORD ) rtc.hour << 11 )
+           | ( ( DWORD ) rtc.min << 5 )
+           | ( ( DWORD ) rtc.sec >> 1 );
 }

@@ -54,11 +54,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#ifndef __IASMARM__
-/* For SystemCoreClock */
-#include "board.h"
-#endif
-
+#include "chip.h"
 /*-----------------------------------------------------------
  * Application specific definitions.
  *

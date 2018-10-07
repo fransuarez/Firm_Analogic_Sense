@@ -3,7 +3,6 @@
 
 #include "auxiliar_gpios_def.h"
 
-void DIGITAL_KEY_Init (void);
 void PULSE_COUNT_TASK_Init(void);
 uint8_t PULSE_COUNT_TASK_UpdateFallings(void);
 void PULSE_COUNT_TASK_UpdateFreq(void);

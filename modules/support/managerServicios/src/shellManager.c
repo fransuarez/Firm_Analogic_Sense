@@ -6,8 +6,7 @@
  */
 
 #include "ntshell.h"
-#include "ciaaUART.h"
-#include "ciaaIO.h"
+#include "api_UART.h"
 #include "usrcmd.h"
 #include "shellManager.h"
 
@@ -52,9 +51,8 @@ void taskConsola (void * parametrosTarea)
     void *extobj = 0;
     ntshell_t nts;
 
-    ciaaUARTInit();
-    ciaaIOInit();
-    uartSendStr(MSG_BIENVENIDA);
+    UART_Init();
+    sendStr_DEBUG(MSG_BIENVENIDA);
     ntshell_init(&nts, serial_read, serial_write, user_callback, extobj);
     ntshell_set_prompt(&nts, MSG_PROMPT);
     printConsola(nts.prompt, MP_DEF);
@@ -67,7 +65,8 @@ void taskConsola (void * parametrosTarea)
 #endif
 		ntshell_execute(&nts);
 
-		if (inputDatos== INTERNO) {
+		if (inputDatos== INTERNO)
+		{
 			user_callback ((const char *) auxargv[0], (void *) &auxargc);
 			inputDatos= CONSOLA;
 		}
@@ -87,19 +86,19 @@ void printConsola(const char * texto, modep_t mode)
 
 	switch (mode) {
 	    case MP_DEB:
-	    	uartSendStr(MSG_MODO_DEBUG);
+	    	sendStr_DEBUG(MSG_MODO_DEBUG);
 	    	break;
 	    case MP_EST:
-	    	uartSendStr(MSG_MODO_STANDARD);
+	    	sendStr_DEBUG(MSG_MODO_STANDARD);
 	    	break;
 	    case MP_SIN_NL:
-	    	uartSendStr(MSG_MODO_CONTINUO);
+	    	sendStr_DEBUG(MSG_MODO_CONTINUO);
 	    	break;
 	    case MP_DEF:
 	    default:
-	    	uartSendStr(MSG_MODO_DEFAULT);
+	    	sendStr_DEBUG(MSG_MODO_DEFAULT);
 	}
-	if (uartSendStr(texto) == 0)
+	if (sendStr_DEBUG(texto) == 0)
 		nOverFullCS++;
 
 #ifdef USE_RTOS
@@ -115,12 +114,10 @@ int sendConsola (char * string)
 	if (string == NULL) return 0;
 
 	strcpy (buffInpProg, string);
-	//auxargv[i++]= string;
 
 	nextWord= strtok (buffInpProg, " .");
 	while (nextWord != NULL && i< AUX_ARGC)
 	{
-		//printf ("%s\n",nextWord);
 		auxargv[i++]= nextWord;
 		nextWord= strtok (NULL, " .");
 	}
@@ -131,9 +128,10 @@ int sendConsola (char * string)
 	if (i< AUX_ARGC)
 	{
 		while (i< AUX_ARGC)
+		{
 			auxargv[i++]= NULL;
+		}
 	}
-
 	return 1;
 }
 
@@ -146,7 +144,7 @@ static int serial_read(char *buf, int cnt, void *extobj)
         buf[i] = uartRecvChar();
     }
     */
-    return dbgRead( buf,cnt );
+    return recvBuf_DEBUG ( buf, cnt );
 }
 
 /**** Serial write function ****/
@@ -159,7 +157,7 @@ static int serial_write(const char *buf, int cnt, void *extobj)
 
     for (; i < cnt; i++)
     {
-    	uartSendChar(buf[i]);
+    	sendChr_DEBUG(buf[i]);
     }
 
 #ifdef USE_RTOS

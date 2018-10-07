@@ -12,7 +12,7 @@
 /-------------------------------------------------------------------------*/
 
 #include "chip.h"
-#include "board.h"
+//#include "board.h"
 #include "rtc.h"
 
 

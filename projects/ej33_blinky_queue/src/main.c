@@ -51,7 +51,6 @@
 
 #include "FreeRTOSConfig.h"
 #include "Pulse_Count_Task.h"
-#include "board.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -95,10 +94,10 @@ static void initHardware(void)
     SystemCoreClockUpdate();
 
     Board_Init();
-    Board_Buttons_Init();
+    ciaaKEYS_Init();
     PULSE_COUNT_TASK_Init();
-    Board_LED_Set(3, false);
-    Board_LED_Set(4, false);
+    ciaaLED_Set(3, false);
+    ciaaLED_Set(4, false);
 }
 #define TWAIT	   20
 #define PERIODO	 1000
@@ -121,9 +120,9 @@ static void taskControlLed(void * a)
 			deltaT= infoLed.deltaTint;
 			led= infoLed.led;
 		}
-		Board_LED_Toggle(led);
+		ciaaLED_Toggle(led);
 		vTaskDelay(deltaT);
-		Board_LED_Toggle(led);
+		ciaaLED_Toggle(led);
 
 		vTaskDelay(TWAIT);
 	}
@@ -150,7 +149,7 @@ static void taskDetectPulse(void * a)
 				state= RELEASE;
 			}
 			else{
-				Board_LED_Toggle(LED_R);
+				ciaaLED_Toggle(LED_R);
 			}
 			break;
 		case RELEASE:
@@ -160,7 +159,7 @@ static void taskDetectPulse(void * a)
 				tStart= (MAX_UINT32)-tStart;
 				deltaT= tEnd+tStart;
 			}
-			Board_LED_Set(LED_R, false);
+			ciaaLED_Set(LED_R, false);
 			state= UNPRESS;
 
 			infoLed.deltaTint= deltaT;

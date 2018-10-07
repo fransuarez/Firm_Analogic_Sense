@@ -6,7 +6,10 @@
  */
 
 
-#include "ciaaAIN.h"
+#include "api_RTC.h"
+#include "ciaaLED.h"
+#include "api_EEPROM.h"
+
 #include "shellManager.h"
 #include "auxiliar_gpios_def.h"
 #include "services_config.h"
@@ -18,13 +21,18 @@ extern xQueueHandle 		HANDLER_QUEUE_OUTPUTS;
 extern xTaskHandle 			HANDLER_MGR_INPUTS;
 extern xTaskHandle 			HANDLER_MGR_OUTPUTS;
 extern UBaseType_t*			STACKS_TAREAS;
+RTC_t RTC = { 2018, 9, 14, 5, 12, 0, 0 };
 
 void taskDataLogin (void * a)
 {
 	signal_t dataRecLed;
 	//int32_t  tOnLeds [4];
-	char sToSend[30]="Aun esta vacio";
-	uint8_t  i, aux;
+	char sToSend[124]= "Aun esta vacio";
+	uint8_t  i;
+	static uint8_t  analg_val;
+
+	RTC_Init();
+	RTC_setTime( &RTC );
 
 	while (1)
 	{
@@ -34,13 +42,15 @@ void taskDataLogin (void * a)
 		{
 			for(i=0; i<4; i++)
 			{
-				aux= (1<<i);
-				aux &= dataRecLed.led;
-				if( aux )
-				{
-					Board_LED_Set( SELECT_LED(i), true );
+				analg_val= (1<<i);
+				analg_val &= dataRecLed.led;
 
-					sprintf( sToSend, "[AI%d = %i uni]\r\n", i, dataRecLed.readVal[i] );
+				if( analg_val )
+				{
+					ciaaLED_Set( SELECT_LED(i), true );
+
+					sprintf( sToSend, "[%d:%d:%d - AI%d = %i uni]\r\n",
+							RTC.hour, RTC.min, RTC.sec,i, dataRecLed.readVal[i] );
 					printConsola( sToSend, MP_DEB );
 				}
 			}
@@ -49,8 +59,19 @@ void taskDataLogin (void * a)
 		{
 			for(i=0; i<4; i++)
 			{
-				Board_LED_Set( SELECT_LED(i), false );
+				ciaaLED_Set( SELECT_LED(i), false );
 			}
+
 		}
 	}
+}
+
+void dataLog_RTC_Init( void )
+{
+
+}
+
+void dataLog_RTC_Update ( int logClock )
+{
+
 }

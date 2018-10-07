@@ -33,7 +33,7 @@
 //#include "usrcmd.h"
 #include "ntlibc.h"
 #include "ntopt.h"
-#include "ciaaUART.h"
+#include "api_UART.h"
 #include <stdlib.h>
 
 //extern sch_task_t schedTask[LENG_TASK];
@@ -85,7 +85,7 @@ static int usrcmd_ntopt_callback(int argc, char **argv, void *extobj)
         }
         p++;
     }
-    uartSendStr("Unknown command found.\r\n");
+    UART_SendStr("Unknown command found.\r\n");
     return 0;
     /*
     void func_cb_ntopt (int argc, char **argv)
@@ -115,10 +115,10 @@ static int usrcmd_help(int argc, char **argv)
     const cmd_table_t *p = &cmdlist[0];
     int i = 0;
     for (; i < sizeof(cmdlist) / sizeof(cmdlist[0]); i++) {
-    	uartSendStr(p->cmd);
-    	uartSendStr("\t:");
-    	uartSendStr(p->desc);
-    	uartSendStr("\r\n");
+    	UART_SendStr(p->cmd);
+    	UART_SendStr("\t:");
+    	UART_SendStr(p->desc);
+    	UART_SendStr("\r\n");
         p++;
     }
     return 0;
@@ -127,19 +127,19 @@ static int usrcmd_help(int argc, char **argv)
 static int usrcmd_info(int argc, char **argv)
 {
     if (argc != 2) {
-    	uartSendStr("info sys\r\n");
-    	uartSendStr("info ver\r\n");
+    	UART_SendStr("info sys\r\n");
+    	UART_SendStr("info ver\r\n");
         return 0;
     }
     if (ntlibc_strcmp(argv[1], "sys") == 0) {
-    	uartSendStr("NXP LPC824 Monitor\r\n");
+    	UART_SendStr("NXP LPC824 Monitor\r\n");
         return 0;
     }
     if (ntlibc_strcmp(argv[1], "ver") == 0) {
-    	uartSendStr("Version 0.0.0\r\n");
+    	UART_SendStr("Version 0.0.0\r\n");
         return 0;
     }
-    uartSendStr("Unknown sub command found\r\n");
+    UART_SendStr("Unknown sub command found\r\n");
     return -1;
 }
 
