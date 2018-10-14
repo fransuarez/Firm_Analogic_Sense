@@ -47,9 +47,7 @@
 
 /*==================[inclusions]=============================================*/
 #include "main.h"
-#include <stdio.h>
 #include "services_config.h"
-#include "Pulse_Count_Task.h"
 
 
 /*==================[macros and definitions]=================================*/

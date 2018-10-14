@@ -5,8 +5,8 @@
  *      Author: fran
  */
 
-#ifndef MODULES_SUPPORT_SENSADOANALOGICO_INC_AUXILIAR_GPIOS_DEF_H_
-#define MODULES_SUPPORT_SENSADOANALOGICO_INC_AUXILIAR_GPIOS_DEF_H_
+#ifndef MODULES_SUPPORT_SENSADOANALOGICO_
+#define MODULES_SUPPORT_SENSADOANALOGICO_
 
 /*==================[macros]=================================================*/
 
@@ -14,41 +14,14 @@
 #define SELECT_LED(A) (A+FIRSTLED)
 
 /*==================[typedef]================================================*/
-
-typedef enum
-{
-	DINP,
-	DOUT,
-	AINP,
-	AOUT
-} type_t;
-
-typedef enum
-{
-	HIGH,
-	LOW
-} statPin_t;
-
-typedef enum
-{
-	LED_1=1,
-	LED_2=2,
-	LED_3=4,
-	LED_4=8
-} led_t;
-
-typedef enum
-{
-	TECL1=0,
-	TECL2,
-	TECL3,
-	TECL4
-} tec_t;
-
+typedef uint8_t	led_t;
+typedef uint8_t	statPin_t;
+typedef uint8_t	tec_t;
+typedef uint8_t	type_t;
 
 typedef struct
 {
-	uint8_t    led;
+	led_t     led;
 	uint16_t  *readVal;
 } signal_t;
 
@@ -59,12 +32,8 @@ typedef struct
 	//TickType_t ticktimes;
 } queue_t;
 
-typedef enum
-{
-	MENOR11,
-	MENOR21,
-	MAYOR20
-} LedOut;
+
+/*
 
 typedef struct GPIO_digital
 {
@@ -86,4 +55,5 @@ typedef struct GPIO_values
 
 } gpio_values_t;
 
-#endif /* MODULES_SUPPORT_SENSADOANALOGICO_INC_AUXILIAR_GPIOS_DEF_H_ */
+*/
+#endif /* MODULES_SUPPORT_SENSADOANALOGICO_ */

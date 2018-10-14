@@ -85,7 +85,7 @@ static void taskControlLed(void * a)
 
 				// Si uso esta funcion tengo que reservar el doblre de stack a la tarea... Ver como reemplazar
 				sprintf(sToSend, "[P%d, %lu mS]\r\n", dataRecLed.led-FIRSTLED+1, dataRecLed.deltaT);
-				printConsola(sToSend, MP_DEB);
+				printTerminal(sToSend, MP_DEB);
 			}
 		}
 		for (i = 0; i < 4; ++i) {
@@ -210,7 +210,7 @@ int main(void)
 		// Con esta cantidad de stack le quedan libres 79 Bytes. Le sobran < 1*STACK_SIZE =128
 		while(1);
 
-	if(xTaskCreate( taskConsola, (const char *) "Tarea control de comunicacion con terminal.",
+	if(xTaskCreate( taskTerminal, (const char *) "Tarea control de comunicacion con terminal.",
 				   (configMINIMAL_STACK_SIZE*4), NULL, tskIDLE_PRIORITY+1, &pxCreatedTask3 )!=pdPASS)
 		// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
 		while(1);

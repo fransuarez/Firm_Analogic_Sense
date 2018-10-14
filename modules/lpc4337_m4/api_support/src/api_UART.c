@@ -31,20 +31,36 @@
  *
  */
 
-#include "api_UART.h"
+#include "chip.h"
 
+// FIXME Implementar compilacion condicional para no ocupar buffer al pedo.
 #define USE_UART_USB
+
+#define UART_BUF_SIZE		512
+#define UART_RX_FIFO_SIZE 	16
+#define	CIAA_UART_485  		0
+#define CIAA_UART_USB  		1
+#define	CIAA_UART_232  		2
+
 uint8_t rxbuf[3][UART_BUF_SIZE];
 uint8_t txbuf[3][UART_BUF_SIZE];
 
 RINGBUFF_T rrb[3];
 RINGBUFF_T trb[3];
 
+typedef struct _uartData
+{
+	LPC_USART_T * uart;
+	RINGBUFF_T * rrb;
+	RINGBUFF_T * trb;
+
+} stUART_t;
+
 stUART_t uarts[3] =
 {
-		{ LPC_USART0, &(rrb[0]), &(trb[0]) },
-		{ LPC_USART2, &(rrb[1]), &(trb[1]) },
-		{ LPC_USART3, &(rrb[2]), &(trb[2]) },
+	{ LPC_USART0, &(rrb[CIAA_UART_485]), &(trb[CIAA_UART_485]) },
+	{ LPC_USART2, &(rrb[CIAA_UART_USB]), &(trb[CIAA_UART_USB]) },
+	{ LPC_USART3, &(rrb[CIAA_UART_232]), &(trb[CIAA_UART_232]) },
 };
 
 void UART_Init(void)
@@ -110,14 +126,14 @@ void UART_Init(void)
 #endif
 }
 
-int UART_Send( enUART_t nUART, void * data, int datalen )
+int UART_Send( int nUART, void * data, int datalen )
 {
 	stUART_t * u = &(uarts[nUART]);
 
 	return Chip_UART_SendRB(u->uart, u->trb, data, datalen);
 }
 
-int UART_Recv( enUART_t nUART, void * data, int datalen )
+int UART_Recv( int nUART, void * data, int datalen )
 {
 	stUART_t * u = &(uarts[nUART]);
 
@@ -156,7 +172,7 @@ int UART_SendStr( const char *str )
     return bytes;
 }
 
-void UART_IRQ( enUART_t n )
+void UART_IRQ( int n )
 {
 	stUART_t * u = &(uarts[n]);
 

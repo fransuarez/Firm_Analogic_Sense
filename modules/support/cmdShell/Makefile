@@ -29,29 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# application name
-PROJECT_NAME := $(notdir $(PROJECT))
+cmdShell_PATH := modules/support/cmdShell
 
-# Modules needed by the application
-PROJECT_MODULES := \
-                   modules/support/taskServices		\
-                   modules/support/sensadoAnalogico \
-                   modules/support/cmdShell 		\
-                   modules/support/dspMath			\
-                   modules/external/freertos 		\
-                   modules/external/tinyShell 		\
-                   modules/external/colasCirculares \
-                   modules/$(TARGET)/ciaa_support	\
-                   modules/$(TARGET)/api_support	\
-                   modules/$(TARGET)/base 			\
-                   modules/$(TARGET)/chip			  
+cmdShell_SRC_FILES := $(wildcard $(cmdShell_PATH)/src/*.c)
 
-# source files folder
-PROJECT_SRC_FOLDERS := $(PROJECT)/src
+cmdShell_SRC_FOLDERS := $(cmdShell_PATH)/src
 
-# header files folder
-PROJECT_INC_FOLDERS := $(PROJECT)/inc
-
-# source files
-PROJECT_C_FILES := $(wildcard $(PROJECT)/src/*.c)
-PROJECT_ASM_FILES := $(wildcard $(PROJECT)/src/*.S)
+cmdShell_INC_FOLDERS := $(cmdShell_PATH)/inc

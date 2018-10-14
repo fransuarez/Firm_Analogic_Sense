@@ -6,13 +6,13 @@
  */
 #include "services_config.h"
 
-xTaskHandle 	 HANDLER_TASK_N1;
-xTaskHandle 	 HANDLER_TASK_N2;
-xTaskHandle 	 HANDLER_TASK_N3;
+xTaskHandle 	 TASK_N1_HANDLER;
+xTaskHandle 	 TASK_N2_HANDLER;
+xTaskHandle 	 TASK_N3_HANDLER;
 
-xQueueHandle 	 HANDLER_QUEUE_INPUTS;
-xQueueHandle 	 HANDLER_QUEUE_OUTPUTS;
-xSemaphoreHandle MUTEX_CONSOLA;
+xQueueHandle 	 MGR_INPUT_QUEUE;
+xQueueHandle 	 MGR_OUTPUT_QUEUE;
+xSemaphoreHandle MGR_TERMINAL_MUTEX;
 
 // Arreglo con el stack disponible de las tareas creadas en main
 UBaseType_t 	 stacktareas[NUM_TASK];
@@ -25,11 +25,11 @@ int tasks_create ( void )
 	BaseType_t retaux;
 
 	retaux= xTaskCreate( TASK_N1, (const char *)
-						 DESCR_TASK_N1,
-						 STACK_TASK_N1,
+						 TASK_N1_DECRIPT,
+						 TASK_N1_STACK,
 						 NULL,
-						 PRIOIDAD_TASK_N1,
-						 &HANDLER_TASK_N1 );
+						 TASK_N1_PRIORITY,
+						 &TASK_N1_HANDLER );
 
 	if( pdPASS != retaux )
 	{
@@ -37,11 +37,11 @@ int tasks_create ( void )
 	}
 
 	retaux= xTaskCreate( TASK_N2, (const char *)
-						 DESCR_TASK_N2,
-						 STACK_TASK_N2,
+						 TASK_N2_DECRIPT,
+						 TASK_N2_STACK,
 						 NULL,
-						 PRIOIDAD_TASK_N2,
-						 &HANDLER_TASK_N2 );
+						 TASK_N2_PRIORITY,
+						 &TASK_N2_HANDLER );
 
 	if( pdPASS != retaux )
 	{
@@ -49,20 +49,20 @@ int tasks_create ( void )
 	}
 
 	retaux= xTaskCreate( TASK_N3, (const char *)
-						 DESCR_TASK_N3,
-						 STACK_TASK_N3,
+						 TASK_N3_DECRIPT,
+						 TASK_N3_STACK,
 						 NULL,
-						 PRIOIDAD_TASK_N3,
-						 &HANDLER_TASK_N3 );
+						 TASK_N3_PRIORITY,
+						 &TASK_N3_HANDLER );
 
 	if( pdPASS != retaux )
 	{
 		retval= 3;
 	}
 
-	HANDLER_QUEUE_INPUTS  = xQueueCreate( SIZE_QUEUE_INPUTS, SIZE_ITEMS_INPUTS );
-	HANDLER_QUEUE_OUTPUTS = xQueueCreate( SIZE_QUEUE_OUTPUTS, SIZE_ITEMS_OUTPUTS );
-	MUTEX_CONSOLA = xSemaphoreCreateMutex();
+	MGR_INPUT_QUEUE  = xQueueCreate( MGR_INPUT_QUEUE_LENGT, MGR_INPUT_QUEUE_SIZE );
+	MGR_OUTPUT_QUEUE = xQueueCreate( MGR_OUTPUT_QUEUE_LENGT, MGR_OUTPUT_QUEUE_SIZE );
+	MGR_TERMINAL_MUTEX = xSemaphoreCreateMutex();
 
 	return retval;
 }

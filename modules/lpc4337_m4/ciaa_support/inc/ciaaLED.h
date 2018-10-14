@@ -8,17 +8,16 @@
 #ifndef MODULES_LPC4337_M4_CIAA_SUPPORT_INC_CIAALED_H_
 #define MODULES_LPC4337_M4_CIAA_SUPPORT_INC_CIAALED_H_
 
-// DEFINICIONES GENERALES
-#define LED1_GPIO_PORT_NUM              1
-#define LED1_GPIO_BIT_NUM               11
-#define LED2_GPIO_PORT_NUM              1
-#define LED2_GPIO_BIT_NUM               12
+#include "lpc_types.h"
 
-#define LEDS_LED1           0x01
-#define LEDS_LED2           0x02
-#define LEDS_LED3           0x04
-#define LEDS_LED4           0x08
-#define LEDS_NO_LEDS        0x00
+typedef enum
+{
+	LED_1=1,
+	LED_2=2,
+	LED_3=4,
+	LED_4=8
+
+} leds_t;
 
 void ciaaLED_Init 	(void);
 

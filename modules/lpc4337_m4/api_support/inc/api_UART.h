@@ -37,36 +37,19 @@
 #include "chip.h"
 #include "string.h"
 
+
+void 	UART_Init 		( void );
+int 	UART_Send		( int nUART, void * data, int datalen );
+int 	UART_Recv 		( int nUART, void * data, int datalen );
+int 	UART_SendChar 	( uint8_t c );
+int 	UART_SendStr  	( const char *);
+uint8_t UART_RecvChar 	( void );
+
+
 #define print_RS485(x)		UART_Send ( 0, (uint8_t *)(x), strlen(x) )
 #define print_RS232(x)  	UART_Send ( 2, (uint8_t *)(x), strlen(x) )
 #define sendChr_DEBUG(x)  	UART_SendChar ( x )
 #define sendStr_DEBUG(x)  	UART_Send ( 1, (uint8_t *)(x), strlen(x) )
 #define recvBuf_DEBUG(x,y)	UART_Recv ( 1, (uint8_t *)(x), y )
-
-#define UART_BUF_SIZE	512
-#define UART_RX_FIFO_SIZE 16
-
-typedef enum _Uarts_e
-{
-	CIAA_UART_485 = 0,
-	CIAA_UART_USB = 1,
-	CIAA_UART_232 = 2
-
-} enUART_t;
-
-typedef struct _uartData
-{
-	LPC_USART_T * uart;
-	RINGBUFF_T * rrb;
-	RINGBUFF_T * trb;
-
-} stUART_t;
-
-void 	UART_Init 		( void );
-int 	UART_Send		( enUART_t nUART, void * data, int datalen );
-int 	UART_Recv 		( enUART_t nUART, void * data, int datalen );
-int 	UART_SendChar 	( uint8_t c );
-int 	UART_SendStr  	( const char *);
-uint8_t UART_RecvChar 	( void );
 
 #endif /* CIAAUART_H_ */

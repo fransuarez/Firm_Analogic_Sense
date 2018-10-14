@@ -29,10 +29,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-cmdTerminal_PATH := modules/support/cmdTerminal
+api_support_PATH := modules/lpc4337_m4/api_support
 
-cmdTerminal_SRC_FILES := $(wildcard $(cmdTerminal_PATH)/src/*.c)
+api_support_SRC_FILES := $(wildcard $(api_support_PATH)/src/*.c)\
+						  $(wildcard $(api_support_PATH)/src/*.S)
 
-cmdTerminal_SRC_FOLDERS := $(cmdTerminal_PATH)/src
+api_support_SRC_FOLDERS := $(api_support_PATH)/src
 
-cmdTerminal_INC_FOLDERS := $(cmdTerminal_PATH)/inc
+api_support_INC_FOLDERS := $(api_support_PATH)/inc

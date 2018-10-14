@@ -6,20 +6,19 @@
  */
 
 
+#include "services_config.h"
+#include "terminalManager.h"
 #include "api_RTC.h"
 #include "ciaaLED.h"
 #include "api_EEPROM.h"
 
-#include "shellManager.h"
-#include "auxiliar_gpios_def.h"
-#include "services_config.h"
 #include "Pulse_Count_Task.h"
 
-extern xQueueHandle 		HANDLER_QUEUE_INPUTS;
-extern xQueueHandle 		HANDLER_QUEUE_OUTPUTS;
+extern xQueueHandle 		MGR_INPUT_QUEUE;
+extern xQueueHandle 		MGR_OUTPUT_QUEUE;
 
-extern xTaskHandle 			HANDLER_MGR_INPUTS;
-extern xTaskHandle 			HANDLER_MGR_OUTPUTS;
+extern xTaskHandle 			MGR_INPUT_HANDLER;
+extern xTaskHandle 			MGR_OUTPUT_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
 RTC_t RTC = { 2018, 9, 14, 5, 12, 0, 0 };
 
@@ -36,9 +35,9 @@ void taskDataLogin (void * a)
 
 	while (1)
 	{
-		ACTUALIZAR_STACK_TAREA( HANDLER_MGR_OUTPUTS, ID_STACK_MGR_OUTPUT );
+		ACTUALIZAR_STACK( MGR_OUTPUT_HANDLER, MGR_OUTPUT_ID_STACK );
 
-		if( pdTRUE == xQueueReceive( HANDLER_QUEUE_OUTPUTS, &dataRecLed, TIMEOUT_QUEUE_OUTPUT ))
+		if( pdTRUE == xQueueReceive( MGR_OUTPUT_QUEUE, &dataRecLed, TIMEOUT_QUEUE_OUTPUT ))
 		{
 			for(i=0; i<4; i++)
 			{
@@ -51,7 +50,7 @@ void taskDataLogin (void * a)
 
 					sprintf( sToSend, "[%d:%d:%d - AI%d = %i uni]\r\n",
 							RTC.hour, RTC.min, RTC.sec,i, dataRecLed.readVal[i] );
-					printConsola( sToSend, MP_DEB );
+					terminal_msg_debug( sToSend );
 				}
 			}
 		}

@@ -32,32 +32,72 @@
  */
  
 #include "chip.h"
+//#include "api_ADC.h"
 
-static uint16_t current_in[4];
+#define ADC_INPUTS	3
+#define ADC_USE_IRQ 0
+static uint16_t current_in[ADC_INPUTS];
 
-void ADC_init(void)
+void ADC_init (void)
 {
 	ADC_CLOCK_SETUP_T clk = {200000, 10, true};
 
-	Chip_ADC_Init(LPC_ADC0, &clk);
+	Chip_ADC_Init( LPC_ADC0, &clk );
 
-	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH1, ENABLE);
-	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH2, ENABLE);
-	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH3, ENABLE);
-#if 0
-	Chip_ADC_EnableChannel(LPC_ADC0, ADC_CH4, ENABLE);
+	Chip_ADC_EnableChannel( LPC_ADC0, ADC_CH1, ENABLE );
+	Chip_ADC_EnableChannel( LPC_ADC0, ADC_CH2, ENABLE );
+	Chip_ADC_EnableChannel( LPC_ADC0, ADC_CH3, ENABLE );
+
+	Chip_ADC_Int_SetChannelCmd( LPC_ADC0, ADC_CH1, ENABLE );
+	Chip_ADC_Int_SetChannelCmd( LPC_ADC0, ADC_CH2, ENABLE );
+	Chip_ADC_Int_SetChannelCmd( LPC_ADC0, ADC_CH3, ENABLE );
+
+	Chip_ADC_SetBurstCmd( LPC_ADC0, ENABLE );
+
+#if ( ADC_USE_IRQ == 1 )
+	NVIC_EnableIRQ( ADC0_IRQn );
 #endif
+}
 
-	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH1, ENABLE);
-	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH2, ENABLE);
-	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH3, ENABLE);
-#if 0
-	Chip_ADC_Int_SetChannelCmd(LPC_ADC0, ADC_CH4, ENABLE);
+uint16_t* ADC_read (void)
+{
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
+	}
+
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
+	}
+
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH3, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
+	}
+	return current_in;
+}
+
+void ADC_IRQ0Support (void)
+{
+#if ( ADC_USE_IRQ == 1 )
+
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
+	}
+
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
+	}
+
+	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH3, ADC_DR_DONE_STAT) )
+	{
+		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
+	}
 #endif
-
-	Chip_ADC_SetBurstCmd(LPC_ADC0, ENABLE);
-
-	NVIC_EnableIRQ(ADC0_IRQn);
+	NVIC_ClearPendingIRQ( ADC0_IRQn );
 }
 
 void DAC_init(void)
@@ -75,34 +115,4 @@ void DAC_set(float level)
 	if(level > 100) level = 100;
 
 	Chip_DAC_UpdateValue(LPC_DAC, (uint32_t)((level * (float)0x3FF) / 100.0));
-}
-
-uint16_t ADC_read (uint8_t input)
-{
-	if(input > 3) return -1;
-	return current_in[input];
-}
-
-void ADC_IRQ0Support(void)
-{
-	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT)==SET)
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
-	}
-
-	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT)==SET)
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
-	}
-
-	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH3, ADC_DR_DONE_STAT)==SET)
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
-	}
-#if 0
-	if(Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH4, ADC_DR_DONE_STAT)==SET)
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH4, current_in+3);
-	}
-#endif
 }

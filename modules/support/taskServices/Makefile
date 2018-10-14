@@ -29,10 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-managerServicios_PATH := modules/support/managerServicios
+taskServices_PATH := modules/support/taskServices
 
-managerServicios_SRC_FILES := $(wildcard $(managerServicios_PATH)/src/*.c)
+taskServices_SRC_FILES := $(wildcard $(taskServices_PATH)/src/*.c)
 
-managerServicios_SRC_FOLDERS := $(managerServicios_PATH)/src
+taskServices_SRC_FOLDERS := $(taskServices_PATH)/src
 
-managerServicios_INC_FOLDERS := $(managerServicios_PATH)/inc
+taskServices_INC_FOLDERS := $(taskServices_PATH)/inc

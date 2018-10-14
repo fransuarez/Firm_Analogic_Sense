@@ -85,7 +85,7 @@ static void initHardware(void)
     SystemCoreClockUpdate();
 
     Board_Init();
-    ciaaKEYS_Init();
+    ciaaTEC_Init();
     PULSE_COUNT_TASK_Init();
     ciaaLED_Set(3, false);
     ciaaLED_Set(4, false);

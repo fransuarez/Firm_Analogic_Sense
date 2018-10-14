@@ -9,12 +9,9 @@
 #define MODULES_LPC4337_M4_CIAA_SUPPORT_INC_CIAAGPIO_DEF_H_
 
 #include "chip.h"
-#include "lpc_types.h"
+//#include "lpc_types.h"
 
-#define IRQ_PIN_INT0	0
-#define IRQ_PIN_INT1	1
-#define IRQ_PIN_INT2	2
-#define IRQ_PIN_INT3	3
+// Definiciones de Hardware:
 
 #define PORT_TEC1		0
 #define PORT_TEC2		0
@@ -44,6 +41,7 @@ typedef struct
 {
 	uint8_t port;
 	uint8_t pin;
+
 } io_port_t;
 
 

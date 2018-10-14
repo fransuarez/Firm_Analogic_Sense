@@ -34,12 +34,17 @@
 #ifndef CIAAAIN_H_
 #define CIAAAIN_H_
 
-#include "chip.h"
+//#include "chip.h"
+#define  ADC_CH0_ID		0
+#define  ADC_CH1_ID		1
+#define  ADC_CH2_ID		2
 
-void ADC_init(void);
-void ADC_IRQ0Support(void);
-uint16_t ADC_read(uint8_t input);
+void 	 ADC_init		(void);
+uint16_t* ADC_read		(void);
+void 	 ADC_IRQ0Support(void);
 
-void DAC_init(void);
-void DAC_set(float level);
+void 	 DAC_init		(void);
+void 	 DAC_set 		(float level);
+
+
 #endif /* CIAAAIN_H_ */
