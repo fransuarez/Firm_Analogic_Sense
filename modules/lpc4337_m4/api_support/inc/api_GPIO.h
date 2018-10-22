@@ -10,12 +10,26 @@
 
 #include "lpc_types.h"
 
-#define HI_LEVEL 1
-#define LO_LEVEL 0
 
-uint8_t GPIO_IRQHandler_CH0 ( void );
-void 	GPIO_EnableIRQ_CH0  ( uint8_t, uint8_t );
 
+typedef struct type_gpio_input
+{
+
+
+
+} gpio_inp_t;
+
+enum {
+	PIN
+};
+
+void 	GPIO_EnablePin  (uint8_t pinPort, uint8_t pinNumber, uint8_t func, uint8_t gpioPort, uint8_t gpioNumber, uint8_t mode);
+void 	GPIO_SetLevel 	(uint8_t gpioPort, uint8_t gpioPin, bool level);
+bool 	GPIO_GetLevel 	(uint8_t gpioPort, uint8_t gpioPin);
+
+void 	GPIO_InputIRQEnable   (uint8_t port, uint8_t pin, uint8_t chId);
+void 	GPIO_InputIRQDisable (uint8_t chId);
+uint8_t GPIO_InputIRQHandler  (uint8_t chId);
 
 
 #endif /* MODULES_API_GPIO_H_ */

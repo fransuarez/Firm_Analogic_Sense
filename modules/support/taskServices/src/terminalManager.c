@@ -22,6 +22,8 @@
 
 extern xTaskHandle 			MGR_TERMINAL_HANDLER;
 extern xSemaphoreHandle 	MGR_TERMINAL_MUTEX;
+extern xQueueHandle 		MGR_TERMINAL_QUEUE;
+
 extern UBaseType_t*			STACKS_TAREAS;
 /***********************************************************************************/
 
@@ -50,10 +52,11 @@ static int 					auxargc;
 static int					nOverFullCS;
 
 /* Funciones privadas ***************************************************/
-static int readTerminal		( char *, int , void * );
-static int writeTerminal	( const char *, int , void * );
-static int callParserShell	( const char *, void * );
-static int sendCommandShell ( char * );
+static int  readTerminal	 ( char *, int , void * );
+static int  writeTerminal	 ( const char *, int , void * );
+static int  callParserShell	 ( const char *, void * );
+static int  sendCommandShell ( char * );
+static void printTerminal 	 ( terMsg_t * msg );
 
 
 /* Funciones publicas **************************************************/
@@ -61,6 +64,8 @@ static int sendCommandShell ( char * );
 void taskTerminal (void * parametrosTarea)
 {
     void *extobj = 0;
+	terMsg_t msgRecived;
+
     ntshell_t nts;
 
     UART_Init();
@@ -72,7 +77,6 @@ void taskTerminal (void * parametrosTarea)
 	while(1)
 	{
 		ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
-		//TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA);
 		ntshell_execute(&nts);
 
 		if( INTERNO == inputDatos )
@@ -80,9 +84,20 @@ void taskTerminal (void * parametrosTarea)
 			callParserShell ((const char *) auxargv[0], (void *) &auxargc);
 			inputDatos= CONSOLA;
 		}
-		//LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX );
-		vTaskDelay( MGR_TERMINAL_DELAY );
 
+		if( pdTRUE == xQueueReceive( MGR_TERMINAL_QUEUE, &msgRecived, TIMEOUT_QUEUE_MSG_INP ))
+		{
+			if( msgRecived.cmdShell )
+			{
+				sendCommandShell( msgRecived.msg );
+			}
+			else
+			{
+				printTerminal( &msgRecived );
+			}
+		}
+
+		vTaskDelay( MGR_TERMINAL_DELAY );
 	}
 }
 
@@ -90,27 +105,27 @@ void taskTerminal (void * parametrosTarea)
  * Funcion que envia un string a la terminal de debuging.
  * Al usar RTOS la misma debe de tener acceso sobre el recurso.
  */
-void printTerminal(const char * texto, modep_t mode)
+static void printTerminal( terMsg_t * msg )
 {
 #ifdef USE_RTOS
 	TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA);
 #endif
 
-	switch (mode) {
+	switch (msg->mode) {
 	    case MP_DEB:
-	    	sendStr_DEBUG(MSG_MODO_DEBUG);
+	    	sendStr_DEBUG( MSG_MODO_DEBUG );
 	    	break;
 	    case MP_EST:
-	    	sendStr_DEBUG(MSG_MODO_STANDARD);
+	    	sendStr_DEBUG( MSG_MODO_STANDARD );
 	    	break;
 	    case MP_SIN_NL:
-	    	sendStr_DEBUG(MSG_MODO_CONTINUO);
+	    	sendStr_DEBUG( MSG_MODO_CONTINUO );
 	    	break;
 	    case MP_DEF:
 	    default:
-	    	sendStr_DEBUG(MSG_MODO_DEFAULT);
+	    	sendStr_DEBUG( MSG_MODO_DEFAULT );
 	}
-	if (sendStr_DEBUG(texto) == 0)
+	if( !sendStr_DEBUG( msg->msg ))
 	{
 		nOverFullCS++;
 	}

@@ -8,30 +8,43 @@
 #ifndef MODULES_SUPPORT_SENSADOANALOGICO_
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
-/*==================[macros]=================================================*/
-
-#define FIRSTLED	   	2
-#define SELECT_LED(A) (A+FIRSTLED)
-
 /*==================[typedef]================================================*/
-typedef uint8_t	led_t;
-typedef uint8_t	statPin_t;
-typedef uint8_t	tec_t;
-typedef uint8_t	type_t;
+typedef uint16_t	led_t;
+typedef uint8_t		statPin_t;
+typedef uint8_t		tec_t;
+typedef uint8_t		type_t;
 
 typedef struct
 {
-	led_t     led;
+	led_t      led;
 	uint16_t  *readVal;
-} signal_t;
+
+} ledStat_t;
 
 typedef struct
 {
-	tec_t      key;
-	statPin_t  state;
+	tec_t       key;
+	statPin_t   state;
+	uint16_t 	dummy;
 	//TickType_t ticktimes;
-} queue_t;
+} tecStat_t;
 
+typedef struct
+{
+	uint16_t 	size;
+	uint8_t 	mode;
+	uint8_t 	cmdShell;
+	char* 		msg;
+	//TickType_t ticktimes;
+} terMsg_t;
+
+typedef struct
+{
+	uint16_t 	size;
+	uint16_t 	dummy;
+	char* 		msg;
+	//TickType_t ticktimes;
+} dlogPack_t;
 
 /*
 

@@ -7,42 +7,73 @@
 
 #include "chip.h"
 
-void GPIO_EnableIRQ_CH0 ( uint8_t port, uint8_t pin )
+#define INT_IRQ_ID(X)	(PIN_INT0_IRQn+(X))
+
+#define PULLUP_BUFFER	(MD_PUP|MD_EZI)
+
+
+void GPIO_EnablePin (uint8_t pinPort, uint8_t pinNumber, uint8_t func, uint8_t gpioPort, uint8_t gpioNumber, uint8_t mode)
 {
-    Chip_PININT_Init( LPC_GPIO_PIN_INT );
-    Chip_SCU_GPIOIntPinSel( IRQ_PIN_INT0, port, pin );
+	Chip_SCU_PinMux  ( pinPort, pinNumber, PULLUP_BUFFER, func );
+	Chip_GPIO_SetDir ( LPC_GPIO_PORT, gpioPort,(1<<gpioNumber), mode);
 
-    //Chip_PININT_SetPinModeLevel(LPC_GPIO_PIN_INT, PININTCH0);
-    Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH0 );
-    Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH0 );
-
-    Chip_PININT_EnableIntLow  ( LPC_GPIO_PIN_INT, PININTCH0 );
-    Chip_PININT_EnableIntHigh ( LPC_GPIO_PIN_INT, PININTCH0 );
-	/* Set lowest priority for RIT */
-	NVIC_SetPriority( PIN_INT0_IRQn, ((1<<__NVIC_PRIO_BITS) - 1) );
-
-	/* Enable IRQ for RIT */
-	NVIC_EnableIRQ( PIN_INT0_IRQn );
+	if( mode )
+	{
+		Chip_GPIO_ClearValue(LPC_GPIO_PORT, gpioPort, (1<<gpioNumber));
+	}
 }
 
-uint8_t GPIO_IRQHandler_CH0 ( void )
+void GPIO_SetLevel (uint8_t gpioPort, uint8_t gpioPin, bool level)
 {
-	uint8_t retval;
+	Chip_GPIO_SetPinState( LPC_GPIO_PORT, gpioPort, gpioPin, level );
+}
 
-	// Por ahora es muy rustico, el canal 0 esta reservado solo para la tecla 1:
-	if( PININTCH0 == Chip_PININT_GetFallStates( LPC_GPIO_PIN_INT ) )
+bool GPIO_GetLevel (uint8_t gpioPort, uint8_t gpioPin)
+{
+	return Chip_GPIO_GetPinState( LPC_GPIO_PORT, gpioPort, gpioPin );
+}
+
+void GPIO_InputIRQEnable (uint8_t gpioPort, uint8_t gpioPin, uint8_t chId)
+{
+    Chip_PININT_Init( LPC_GPIO_PIN_INT );
+    Chip_SCU_GPIOIntPinSel( INT_IRQ_ID(chId), gpioPort, gpioPin );
+
+    Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH(chId) );
+    Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH(chId) );
+
+    Chip_PININT_EnableIntLow  ( LPC_GPIO_PIN_INT, PININTCH(chId) );
+    Chip_PININT_EnableIntHigh ( LPC_GPIO_PIN_INT, PININTCH(chId) );
+	/* Set lowest priority for RIT */
+	NVIC_SetPriority( INT_IRQ_ID(chId), ((1<<__NVIC_PRIO_BITS) - 1) );
+
+	/* Enable IRQ for RIT */
+	NVIC_EnableIRQ( INT_IRQ_ID(chId) );
+}
+
+void GPIO_InputIRQDisable (uint8_t chId)
+{
+    Chip_PININT_DisableIntLow  ( LPC_GPIO_PIN_INT, PININTCH(chId) );
+    Chip_PININT_DisableIntHigh ( LPC_GPIO_PIN_INT, PININTCH(chId) );
+	NVIC_DisableIRQ( INT_IRQ_ID(chId) );
+}
+
+uint8_t GPIO_InputIRQHandler ( uint8_t chId )
+{
+	uint8_t retval=0;
+
+	if( PININTCH(chId) == Chip_PININT_GetFallStates( LPC_GPIO_PIN_INT ) )
 	{
+		Chip_PININT_ClearFallStates( LPC_GPIO_PIN_INT, PININTCH(chId) );
 		retval= 1;
-		Chip_PININT_ClearFallStates( LPC_GPIO_PIN_INT, PININTCH0 );
 	}
 
-	else if ( PININTCH0 == Chip_PININT_GetRiseStates( LPC_GPIO_PIN_INT ))
+	else if ( PININTCH(chId) == Chip_PININT_GetRiseStates( LPC_GPIO_PIN_INT ))
 	{
-		retval= 0;
-		Chip_PININT_ClearRiseStates( LPC_GPIO_PIN_INT, PININTCH0 );
+		Chip_PININT_ClearRiseStates( LPC_GPIO_PIN_INT, PININTCH(chId) );
+		//retval= 0;
 	}
 
-	NVIC_ClearPendingIRQ( PIN_INT0_IRQn );
+	NVIC_ClearPendingIRQ( INT_IRQ_ID(chId) );
 
 	return retval;
 }

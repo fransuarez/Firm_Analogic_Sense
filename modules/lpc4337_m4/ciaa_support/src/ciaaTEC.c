@@ -7,6 +7,7 @@
 
 #include "ciaaGPIO_def.h"
 #include "api_GPIO.h"
+#include "ciaaTEC.h"
 
 // ------ Private constants -----------------------------------
 
@@ -15,83 +16,10 @@
 #define IRQ_PIN_INT2	2
 #define IRQ_PIN_INT3	3
 
-#define TotalCalls 10000
-#define KEY_INP_PASS TEC3
+#define TotalCalls 		10000
+#define KEY_INP_PASS 	TEC3
 #define TECL_TOTAL	 	4
 
-
-static const io_port_t 	gpioBtnBits[TECL_TOTAL] =
-{
-	{PORT_TEC1, PIN_TEC1},
-	{PORT_TEC2, PIN_TEC2},
-	{PORT_TEC3, PIN_TEC3},
-	{PORT_TEC4, PIN_TEC4}
-};
-
-typedef enum _tec_stat
-{
-	TEC_LIBERADO = 0x00,
-	TEC1_PRESSED = 0x01,
-	TEC2_PRESSED = 0x02,
-	TEC3_PRESSED = 0x04,
-	TEC4_PRESSED = 0x08,
-
-} tecStat_t;
-
-static const tecStat_t 	gpioBtnIDs[TECL_TOTAL]  =
-{
-	TEC1_PRESSED, TEC2_PRESSED, TEC3_PRESSED, TEC4_PRESSED
-};
-
-// ------ Public functions  ----------------------------------------
-
-void ciaaTEC_Init (void)
-{
-	uint8_t i=0;
-	/* EDU-CIAA-NXP buttons */
-	PINMUX_GRP_T pin_config[TECL_TOTAL] = {
-			{1, 0, MD_PUP|MD_EZI|FUNC0},	/* TEC1 -> P1_0 */
-			{1, 1, MD_PUP|MD_EZI|FUNC0},	/* TEC2 -> P1_1 */
-			{1, 2, MD_PUP|MD_EZI|FUNC0},	/* TEC3 -> P1_2 */
-			{1, 6, MD_PUP|MD_EZI|FUNC0} 	/* TEC4 -> P1_6 */
-	};
-
-	Chip_SCU_SetPinMuxing(pin_config, (sizeof(pin_config) / sizeof(PINMUX_GRP_T)));
-
-	for ( i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++)
-	{
-		Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT, gpioBtnBits[i].port, gpioBtnBits[i].pin);
-	}
-	/*
-	// Otra manera de hacer lo mismo mas resumida?:
-	Chip_GPIO_SetDir(LPC_GPIO_PORT, PORT_TEC1,(1<<PIN_TEC1)|(1<<PIN_TEC2)|(1<<PIN_TEC3),0);
-	Chip_GPIO_SetDir(LPC_GPIO_PORT, PORT_TEC4,(1<<PIN_TEC4),0);
-	*/
-	GPIO_EnableIRQ_CH0( PORT_TEC1, PIN_TEC1 );
-}
-
-
-tecStat_t ciaaTEC_Status (void)
-{
-	tecStat_t ret = TEC_LIBERADO;
-	uint8_t i;
-
-	for ( i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++ )
-	{
-		if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, gpioBtnBits[i].port, gpioBtnBits[i].pin) == 0)
-		{
-			ret |= gpioBtnIDs[i];
-		}
-	}
-
-	return ret;
-}
-/*
-uint32_t ciaaReadInput(uint32_t inputNumber)
-{
-	return Chip_GPIO_ReadPortBit(LPC_GPIO_PORT, inputs[inputNumber].port, inputs[inputNumber].bit);
-}
-*/
 // ------ Private variable ------------------------
 static uint8_t Test3, Test2, Test1, Test0;
 static uint32_t Falling_edge;
@@ -100,105 +28,188 @@ static uint32_t Falling_edge;
 uint32_t FrecuenciaFlancos;
 uint32_t TotalFlancos_Tec0; // Si hay un flanco de bajada es 1
 
-
-void PULSE_COUNT_TASK_Init (void)
+typedef struct config_tecl
 {
-	//digitalConfig(TEC3, INPUT );
-	TotalFlancos_Tec0 = 0;
-	Falling_edge = 0;
+	bool		enableIRQ;
+	uint8_t		idIRQ;
+	bool		enableDebounce;
+	uint8_t		Test0;
+	uint8_t		Test1;
+	uint8_t		Test2;
+	uint8_t		Test3;
+} teclCfg_t;
 
-	Test3 = LO_LEVEL;
-	Test2 = LO_LEVEL;
-	Test1 = LO_LEVEL;
-	Test0 = LO_LEVEL;
+static const io_port_t 	gpioBtnBits[TECL_TOTAL] =
+{
+	{GPIO_PORT_TEC1, GPIO_NUMB_TEC1},
+	{GPIO_PORT_TEC2, GPIO_NUMB_TEC2},
+	{GPIO_PORT_TEC3, GPIO_NUMB_TEC3},
+	{GPIO_PORT_TEC4, GPIO_NUMB_TEC4}
+};
 
+static teclCfg_t teclStatus[TECL_TOTAL]=
+{
+	{
+		.idIRQ= IRQ_PIN_INT0
+	},
+	{
+		.idIRQ= IRQ_PIN_INT1
+	},
+	{
+		.idIRQ= IRQ_PIN_INT2
+	},
+	{
+		.idIRQ= IRQ_PIN_INT3
+	}
+};
+
+// ------ Public functions  ----------------------------------------
+
+void ciaaTEC_Init (void)
+{
+	uint8_t i;
+	const dig_port_t pin_config[TECL_TOTAL] =
+	{
+		{PIN_PORT_TEC1, PIN_NUMB_TEC1, PIN_FUNCION_0},	// TEC1 -> P1_0
+		{PIN_PORT_TEC2, PIN_NUMB_TEC2, PIN_FUNCION_0},	// TEC2 -> P1_1
+		{PIN_PORT_TEC3, PIN_NUMB_TEC3, PIN_FUNCION_0},	// TEC3 -> P1_2
+		{PIN_PORT_TEC4, PIN_NUMB_TEC4, PIN_FUNCION_0} 	// TEC4 -> P1_6
+	};
+
+	for ( i = 0; i < TECL_TOTAL; i++)
+	{
+		GPIO_EnablePin( pin_config[i].pinPort, pin_config[i].pinNumber, pin_config[i].function,
+						gpioBtnBits[i].pinPort, gpioBtnBits[i].pinNumber, GPIO_INP_MODE );
+	}
 }
 
-uint8_t PULSE_COUNT_TASK_UpdateFallings (void)
+uint8_t ciaaTEC_Status (tecId_t key_id)
 {
-	// Actualizar muestras
-	Test3 = Test2;
-	Test2 = Test1;
-	Test1 = Test0;
-	Test0 = ciaaTEC_Status();
-	//Test0 = digitalRead(TEC3);
-	uint8_t retval;
+	uint8_t gpioBtnIDs= TECL_RELEASE;
+	uint8_t i;
 
-	if ((Test3 == LO_LEVEL) &&(Test2 == LO_LEVEL) && (Test1 == HI_LEVEL) &&(Test0 == HI_LEVEL))
+
+	if( TECL_TOTAL > key_id )
 	{
-		Falling_edge = 1;
-		retval=1;
-		// Flanco de bajada detectado
+		if ( !GPIO_GetLevel( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber ))
+		{
+			gpioBtnIDs = (1<<key_id);
+		}
 	}
 	else
 	{
-		Falling_edge = 0;
-		retval=0;
+		for ( i = 0; i < TECL_TOTAL; i++ )
+		{
+			if ( !GPIO_GetLevel( gpioBtnBits[i].pinPort, gpioBtnBits[i].pinNumber ))
+			{
+				gpioBtnIDs |= (1<<i);
+			}
+		}
 	}
-	//Se suma uno a los flancos
-	TotalFlancos_Tec0+= Falling_edge;
-	if ((Test3 == HI_LEVEL) &&(Test2 == HI_LEVEL) && (Test1 == LO_LEVEL) && (Test0 == LO_LEVEL))
+	return gpioBtnIDs;
+}
+
+void ciaaKEY_EnableIRQ (tecId_t key_id)
+{
+	GPIO_InputIRQEnable( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber,
+						 teclStatus[key_id].idIRQ );
+}
+
+void ciaaKEY_DisableIRQ (tecId_t key_id)
+{
+	GPIO_InputIRQDisable( teclStatus[key_id].idIRQ );
+}
+
+void ciaaTEC_DebounInit (tecId_t key_id)
+{
+	uint8_t i;
+
+	if( TECL_TOTAL > key_id )
 	{
-		retval=2;
+		teclStatus[key_id].Test0= TECL_FREE;
+		teclStatus[key_id].Test1= TECL_FREE;
+		teclStatus[key_id].Test2= TECL_FREE;
+		teclStatus[key_id].Test3= TECL_FREE;
+	}
+	else
+	{
+		for (i=0; i < TECL_TOTAL; ++i)
+		{
+			teclStatus[i].Test0= TECL_FREE;
+			teclStatus[i].Test1= TECL_FREE;
+			teclStatus[i].Test2= TECL_FREE;
+			teclStatus[i].Test3= TECL_FREE;
+		}
+	}
+}
+
+uint8_t ciaaTEC_DebounStatus (tecId_t key_id)
+{
+	uint8_t i;
+	uint8_t retval= TECL_RELEASE;
+
+	if( TECL_TOTAL > key_id )
+	{
+		// Actualizar muestras
+		teclStatus[key_id].Test3 = teclStatus[key_id].Test2;
+		teclStatus[key_id].Test2 = teclStatus[key_id].Test1;
+		teclStatus[key_id].Test1 = teclStatus[key_id].Test0;
+
+		teclStatus[key_id].Test0 = GPIO_GetLevel(gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber);
+
+		if ((TECL_FREE == teclStatus[key_id].Test3) && (TECL_FREE == teclStatus[key_id].Test2) &&
+			(TECL_PUSH == teclStatus[key_id].Test1) && (TECL_PUSH == teclStatus[key_id].Test0))
+		{
+			// Flanco de bajada detectado.
+			retval= (1<<key_id);
+		}
+	}
+	else
+	{
+		for (i = 0; i < TECL_TOTAL; ++i)
+		{
+			// Actualizar muestras
+			teclStatus[i].Test3 = teclStatus[i].Test2;
+			teclStatus[i].Test2 = teclStatus[i].Test1;
+			teclStatus[i].Test1 = teclStatus[i].Test0;
+
+			teclStatus[i].Test0 = GPIO_GetLevel(gpioBtnBits[i].pinPort, gpioBtnBits[i].pinNumber);
+
+			if ((TECL_FREE == teclStatus[i].Test3) && (TECL_FREE == teclStatus[i].Test2) &&
+				(TECL_PUSH == teclStatus[i].Test1) && (TECL_PUSH == teclStatus[i].Test0))
+			{
+				// Flanco de bajada detectado.
+				retval |= 1<<i;
+			}
+		}
 	}
 	return retval;
 }
 
-uint8_t LEVEL_KEY_Detec_From_ISR ( uint8_t key_id )
+uint8_t ciaaTEC_Level_ISR (tecId_t key_id)
 {
-	uint8_t retval=ERROR_ID_TECLA;
-	// Por ahora es muy rustico, el canal 0 esta reservado solo para la tecla 1:
-	if( TECL1 == key_id )
-	{
-		if( GPIO_IRQHandler_CH0() )
-		{
-			retval= HI_LEVEL;
-		}
-		else
-		{
-			retval= LO_LEVEL;
+	uint8_t i;
+	uint8_t retval=TECL_RELEASE;
 
+	if( TECL_TOTAL > key_id )
+	{
+		if( GPIO_InputIRQHandler( teclStatus[key_id].idIRQ ) )
+		{
+			retval = (1<<key_id);
+		}
+	}
+	else
+	{
+		for (i = 0; i < TECL_TOTAL; ++i)
+		{
+			if( GPIO_InputIRQHandler( teclStatus[i].idIRQ ) )
+			{
+				retval |= (1<<i);
+			}
 		}
 	}
 	return retval;
 }
-/*
 
-typedef enum
-{
-	MENOR11,
-	MENOR21,
-	MAYOR20
-} LedOut;
-
-
-void PULSE_COUNT_TASK_UpdateFreq (void)
-{
-	static LedOut led= MENOR11;
-
-	// se muestran los resultados
-	if( TotalFlancos_Tec0<11 )
-	{
-		led = MENOR11;
-	}
-	if( (TotalFlancos_Tec0>10)&&(TotalFlancos_Tec0<21) )
-	{
-		led = MENOR21;
-	}
-	if( TotalFlancos_Tec0>20 )
-	{
-		led = MAYOR20;
-	}
-	if( TotalFlancos_Tec0/(TotalCalls/1000) == 0)
-	{
-		FrecuenciaFlancos = 0;
-	}
-	else
-	{
-		FrecuenciaFlancos = 1/(TotalFlancos_Tec0/(TotalCalls/1000));
-	}
-	TotalFlancos_Tec0 = 0;
-}
-*/
 
 

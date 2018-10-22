@@ -1,10 +1,9 @@
 /*
- * filesManager.c
+ * ilesManager.c
  *
  *  Created on: 20/7/2018
  *      Author: fran
  */
-
 
 #include "services_config.h"
 #include "terminalManager.h"
@@ -12,55 +11,47 @@
 #include "ciaaLED.h"
 #include "api_EEPROM.h"
 
-#include "Pulse_Count_Task.h"
-
-extern xQueueHandle 		MGR_INPUT_QUEUE;
-extern xQueueHandle 		MGR_OUTPUT_QUEUE;
-
-extern xTaskHandle 			MGR_INPUT_HANDLER;
 extern xTaskHandle 			MGR_OUTPUT_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
-RTC_t RTC = { 2018, 9, 14, 5, 12, 0, 0 };
 
-void taskDataLogin (void * a)
+extern xQueueHandle 		MGR_DATALOG_QUEUE;
+extern xQueueHandle 		MGR_TERMINAL_QUEUE;
+
+static RTC_t RTC =
 {
-	signal_t dataRecLed;
-	//int32_t  tOnLeds [4];
+	.mday = 14,
+	.month= 9,
+	.year = 2018,
+	.wday = 5,
+	.hour = 12,
+	.min  = 0,
+	.sec  = 0
+};
+
+void dataLog_Service (void * a)
+{
+	ledStat_t dataRecLed;
+	terMsg_t msgToSend;
 	char sToSend[124]= "Aun esta vacio";
-	uint8_t  i;
-	static uint8_t  analg_val;
 
 	RTC_Init();
 	RTC_setTime( &RTC );
 
 	while (1)
 	{
-		ACTUALIZAR_STACK( MGR_OUTPUT_HANDLER, MGR_OUTPUT_ID_STACK );
+		ACTUALIZAR_STACK( MGR_DATALOG_HANDLER, MGR_DATALOG_ID_STACK );
 
-		if( pdTRUE == xQueueReceive( MGR_OUTPUT_QUEUE, &dataRecLed, TIMEOUT_QUEUE_OUTPUT ))
+		if( pdTRUE == xQueueReceive( MGR_DATALOG_QUEUE, &dataRecLed, TIMEOUT_QUEUE_LOG_INP ))
 		{
-			for(i=0; i<4; i++)
-			{
-				analg_val= (1<<i);
-				analg_val &= dataRecLed.led;
 
-				if( analg_val )
-				{
-					ciaaLED_Set( SELECT_LED(i), true );
+			sprintf( sToSend, "[%d:%d:%d - AI%d = %i uni]\r\n",
+					 RTC.hour, RTC.min, RTC.sec,i, dataRecLed.readVal[i] );
 
-					sprintf( sToSend, "[%d:%d:%d - AI%d = %i uni]\r\n",
-							RTC.hour, RTC.min, RTC.sec,i, dataRecLed.readVal[i] );
-					terminal_msg_debug( sToSend );
-				}
-			}
+			Terminal_Msg_Promt( &msgToSend, sToSend );
+			xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 		}
 		else
 		{
-			for(i=0; i<4; i++)
-			{
-				ciaaLED_Set( SELECT_LED(i), false );
-			}
-
 		}
 	}
 }

@@ -35,15 +35,36 @@ typedef enum modeprint
 /**********************************************************************/
 
 void 	taskTerminal  ( void * parametrosTarea );
-void 	printTerminal ( const char *texto, modep_t modo_impresion );
 
 
 /************************************************************************/
 // Macros:
-#define terminal_msg_promt(msg)		printTerminal(msg, MP_EST)
-#define terminal_msg_continue(msg)	printTerminal(msg, MP_SIN_NL)
-#define terminal_msg_nline(msg)		printTerminal(msg, MP_DEF)
-#define terminal_msg_debug(msg)		printTerminal(msg, MP_DEB)
+static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+{
+	msgToSend->msg= str;
+	msgToSend->size= strlen(str);
+	msgToSend->mode= MP_DEF;
+}
 
+static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+{
+	msgToSend->msg= str;
+	msgToSend->size= strlen(str);
+	msgToSend->mode= MP_SIN_NL;
+}
+
+static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+{
+	msgToSend->msg= str;
+	msgToSend->size= strlen(str);
+	msgToSend->mode= MP_DEF;
+}
+
+static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+{
+	msgToSend->msg= str;
+	msgToSend->size= strlen(str);
+	msgToSend->mode= MP_DEB;
+}
 
 #endif /* CONSOLA_H_ */

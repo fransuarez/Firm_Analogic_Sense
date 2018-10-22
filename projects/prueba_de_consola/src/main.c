@@ -69,7 +69,7 @@ unsigned long *ptrstack= &stacktareas[0];
 /*==================[internal functions declaration]=========================*/
 static void taskControlLed(void * a)
 {
-	signal_t dataRecLed;
+	ledStat_t dataRecLed;
 	int32_t  tOnLeds [4];
 	char sToSend[30]="Aun esta vacio";
 	uint8_t  i;
@@ -100,8 +100,8 @@ static void taskControlLed(void * a)
 static void taskDetectPulse(void * a)
 {
 	TickType_t tStart, tEnd;
-	queue_t dataRecKey;
-	signal_t dataToSend;
+	tecStat_t dataRecKey;
+	ledStat_t dataToSend;
 	TickType_t tOnKeys [4];
 
 	while (1)
@@ -215,8 +215,8 @@ int main(void)
 		// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
 		while(1);
 
-	queueKeyPad= xQueueCreate(2, sizeof(queue_t));
-	queueSigLed= xQueueCreate(2, sizeof(signal_t));
+	queueKeyPad= xQueueCreate(2, sizeof(tecStat_t));
+	queueSigLed= xQueueCreate(2, sizeof(ledStat_t));
 	mutexConsola = xSemaphoreCreateMutex();
 
 	initHardware();
@@ -232,7 +232,7 @@ int main(void)
 void GPIO0_IRQHandler(void)
 {
 	uint32_t countFall, countRise;
-	queue_t dataToSend;
+	tecStat_t dataToSend;
 	portBASE_TYPE xSwitchRequired;
 
 	countFall= Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT);
@@ -262,7 +262,7 @@ void GPIO0_IRQHandler(void)
 void GPIO1_IRQHandler(void)
 {
 	uint32_t countFall, countRise;
-	queue_t dataToSend;
+	tecStat_t dataToSend;
 	portBASE_TYPE xSwitchRequired;
 
 	countFall= Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT);
@@ -292,7 +292,7 @@ void GPIO1_IRQHandler(void)
 void GPIO2_IRQHandler(void)
 {
 	uint32_t countFall, countRise;
-	queue_t dataToSend;
+	tecStat_t dataToSend;
 	portBASE_TYPE xSwitchRequired;
 
 	countFall= Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT);
@@ -322,7 +322,7 @@ void GPIO2_IRQHandler(void)
 void GPIO3_IRQHandler(void)
 {
 	uint32_t countFall, countRise;
-	queue_t dataToSend;
+	tecStat_t dataToSend;
 	portBASE_TYPE xSwitchRequired;
 
 	countFall= Chip_PININT_GetFallStates(LPC_GPIO_PIN_INT);

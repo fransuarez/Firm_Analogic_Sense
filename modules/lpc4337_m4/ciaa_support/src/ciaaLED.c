@@ -6,55 +6,59 @@
  */
 
 #include "ciaaGPIO_def.h"
+#include "api_GPIO.h"
 
 #define LEDS_LED1           0x01
 #define LEDS_LED2           0x02
 #define LEDS_LED3           0x04
 #define LEDS_LED4           0x08
 #define LEDS_NO_LEDS        0x00
+#define LEDS_TOTAL 		    6
 
-static const io_port_t gpioLEDBits[] =
+
+static const io_port_t gpioLEDBits[LEDS_TOTAL] =
 {
-	{PORT_LEDR, PIN_LEDR},
-	{PORT_LEDG, PIN_LEDG},
-	{PORT_LEDB, PIN_LEDB},
-	{PORT_LED1, PIN_LED1},
-	{PORT_LED2, PIN_LED2},
-	{PORT_LED3, PIN_LED3}
+	{GPIO_PORT_LEDR, GPIO_NUMB_LEDR},  // 0: Led Rojo
+	{GPIO_PORT_LEDG, GPIO_NUMB_LEDG},  // 1: Led Verde
+	{GPIO_PORT_LEDB, GPIO_NUMB_LEDB},  // 2: Led Azul
+	{GPIO_PORT_LED1, GPIO_NUMB_LED1},  // 3: Led 1
+	{GPIO_PORT_LED2, GPIO_NUMB_LED2},  // 4: Led 2
+	{GPIO_PORT_LED3, GPIO_NUMB_LED3}   // 5: Led 3
 };
 
 void ciaaLED_Init (void)
 {
-   /* LEDs EDU-CIAA-NXP */
-   Chip_SCU_PinMux(2, 0, MD_PUP|MD_EZI, FUNC4);  /* GPIO5[0], LED0R */
-   Chip_SCU_PinMux(2, 1, MD_PUP|MD_EZI, FUNC4);  /* GPIO5[1], LED0G */
-   Chip_SCU_PinMux(2, 2, MD_PUP|MD_EZI, FUNC4);  /* GPIO5[2], LED0B */
-   Chip_SCU_PinMux(2, 10, MD_PUP|MD_EZI, FUNC0); /* GPIO0[14], LED1 */
-   Chip_SCU_PinMux(2, 11, MD_PUP|MD_EZI, FUNC0); /* GPIO1[11], LED2 */
-   Chip_SCU_PinMux(2, 12, MD_PUP|MD_EZI, FUNC0); /* GPIO1[12], LED3 */
-
-   Chip_GPIO_SetDir(LPC_GPIO_PORT, PORT_LEDR, (1<<PIN_LEDR)|(1<<PIN_LEDG)|(1<<PIN_LEDB), 1);
-   Chip_GPIO_SetDir(LPC_GPIO_PORT, PORT_LED1, (1<<PIN_LED1), 1);
-   Chip_GPIO_SetDir(LPC_GPIO_PORT, PORT_LED2, (1<<PIN_LED2)|(1<<PIN_LED3), 1);
-
-   Chip_GPIO_ClearValue(LPC_GPIO_PORT, PORT_LEDR, (1<<PIN_LEDR)|(1<<PIN_LEDG)|(1<<PIN_LEDB));
-   Chip_GPIO_ClearValue(LPC_GPIO_PORT, PORT_LED1, (1<<PIN_LED1));
-   Chip_GPIO_ClearValue(LPC_GPIO_PORT, PORT_LED2, (1<<PIN_LED2)|(1<<PIN_LED3));
-}
-
-void ciaaLED_Set(uint8_t LEDNumber, bool On)
-{
-	if (LEDNumber < (sizeof(gpioLEDBits) / sizeof(io_port_t)))
+	uint8_t i;
+	const dig_port_t pinConfig[LEDS_TOTAL]=
 	{
-		Chip_GPIO_SetPinState(LPC_GPIO_PORT, gpioLEDBits[LEDNumber].port, gpioLEDBits[LEDNumber].pin, On);
+		{PIN_PORT_LEDR, PIN_NUMB_LEDR, PIN_FUNCION_4},
+		{PIN_PORT_LEDG, PIN_NUMB_LEDG, PIN_FUNCION_4},
+		{PIN_PORT_LEDB, PIN_NUMB_LEDB, PIN_FUNCION_4},
+		{PIN_PORT_LED1, PIN_NUMB_LED1, PIN_FUNCION_0},
+		{PIN_PORT_LED2, PIN_NUMB_LED2, PIN_FUNCION_0},
+		{PIN_PORT_LED3, PIN_NUMB_LED3, PIN_FUNCION_0},
+	};
+
+	for ( i = 0; i < LEDS_TOTAL; i++)
+	{
+		GPIO_EnablePin( pinConfig[i].pinPort, pinConfig[i].pinNumber, pinConfig[i].function,
+						gpioLEDBits[i].pinPort, gpioLEDBits[i].pinNumber, GPIO_OUT_MODE );
 	}
 }
 
-bool ciaaLED_Test(uint8_t LEDNumber)
+void ciaaLED_Set (uint8_t LEDNumber, bool stat)
 {
-	if (LEDNumber < (sizeof(gpioLEDBits) / sizeof(io_port_t)))
+	if (LEDNumber < LEDS_TOTAL )
 	{
-		return (bool) Chip_GPIO_GetPinState(LPC_GPIO_PORT, gpioLEDBits[LEDNumber].port, gpioLEDBits[LEDNumber].pin);
+		GPIO_SetLevel( gpioLEDBits[LEDNumber].pinPort, gpioLEDBits[LEDNumber].pinNumber, stat );
+	}
+}
+
+bool ciaaLED_Test (uint8_t LEDNumber)
+{
+	if (LEDNumber < LEDS_TOTAL )
+	{
+		return GPIO_GetLevel( gpioLEDBits[LEDNumber].pinPort, gpioLEDBits[LEDNumber].pinNumber );
 	}
 	return false;
 }

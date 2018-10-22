@@ -9,6 +9,11 @@ Tareas proximas TP profesional:
 5- Funcion que muestre el monitoreo de valores de entradas analogicas.
 4- Funcion que arme una tabla con valores de distintas entradas y salidas configurables. Es a modo de visualización por terminal. > NO ahora
 
+5- Implementar la comunicacion a traves de colas entre las tareas no usar espacios/funciones comunes porque esto viola el concepto de alcance
+de cada tarea.
+6- Implementar listas enlazadas con los datos a escribir en memoria EEPROM con la info de los GPIOS. Se van a ir actualizando, aumentando o acortando
+   en funcion de los datos nuevos recibidios y la cantidad de memoria disponible.
+
 
 Pasos:
 --------
@@ -18,12 +23,13 @@ Pasos:
 3- Agregar al comando estado el monitoreo constante de las entradas.  
 	.Esto se debera hacer cada 3 segundos y solo con las IO activadas.
 4- Implementar el reloj RTC o como se llame el periferico, para registrar en el log.
+
 5- Implementar el guardado de N registros por vez en memoria (en principio voy a usar la eeprom interna).
-	Tps:
+   Tips:
 	.Esto se debera a hacer cada 1 minuto o mas ya que los procesos son lentos. 
 	.Solo debe usar una pequeña porcion de la memoria disponible.
 	.La cantidad de registros grabados se indicara en el haeder del espacio de archivo. 
-	 Es por esto que se podria usar formato FAT que ya predefine este tipo de cosas.  > Muy pesado para una eeprom > NO
+	.Se podria usar formato FAT que ya predefine este tipo de cosas.  > Muy pesado para una eeprom > NO
 	.Al momento de llegar al final del archivo se comenzara a reescribir desde el principio? 
 	 Si es asi seria conveniente tener un registro de principio de registros y final. 
 	.Se lo puede pensar como una lista enlazada pero suponiendo cada registro una posicion unica.
@@ -32,8 +38,8 @@ Pasos:
 
 7- Reservar una arreglo con objetos GPIO con sus valores anterior y actual. Tambien con un parametro de activacion, y estado de salud.
 8- Los periodos de las tareas se manejaran con delay internos y timeouts. En funcion del estado donde este cada tarea determinara los delay para 
-	la proxima llamada a la misma. De este modo se puede gestionar cuando ejecutar cada una.
-	Ver rutina: void FreeRTOSDelay (uint32_t ms)
+   la proxima llamada a la misma. De este modo se puede gestionar cuando ejecutar cada una.
+ Ver rutina: void FreeRTOSDelay (uint32_t ms)
 
 9- Los timers los puedo usar para las tareas programadas. Serian utiles en casos donde se debe activar una accion repetitiva o una alarma.
 

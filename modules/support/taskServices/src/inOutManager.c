@@ -12,18 +12,21 @@
 #include "ciaaTEC.h"
 #include "ciaaLED.h"
 
-extern xQueueHandle 		MGR_INPUT_QUEUE;
 extern xTaskHandle 			MGR_INPUT_HANDLER;
-
-extern xQueueHandle 		MGR_OUTPUT_QUEUE;
 extern xTaskHandle 			MGR_OUTPUT_HANDLER;
+
+extern xQueueHandle 		MGR_INPUT_QUEUE;
+extern xQueueHandle 		MGR_OUTPUT_QUEUE;
+extern xQueueHandle 		MGR_TERMINAL_QUEUE;
+
 extern UBaseType_t*			STACKS_TAREAS;
 
 void taskControlOutputs (void * a)
 {
-	signal_t dataRecLed;
-	char sToSend[30]="Aun esta vacio";
-	uint8_t  i, aux;
+	ledStat_t dataRecLed;
+	terMsg_t msgToSend;
+	static char sToSend[30]= "Aun esta vacio";
+	uint8_t i;
 
 	ciaaLED_Init();
 
@@ -35,15 +38,13 @@ void taskControlOutputs (void * a)
 		{
 			for(i=0; i<4; i++)
 			{
-				aux= (1<<i);
-				aux &= dataRecLed.led;
-				if( aux )
+				if( dataRecLed.led & (1<<i) )
 				{
 					ciaaLED_Set( SELECT_LED(i), true );
-
 					sprintf( sToSend, "[AI%d = %i uni]\r\n", i, dataRecLed.readVal[i] );
-					// FIXME: esto debe ir a traves de una cola para que lo procese la tarea terminal directamente.
-					terminal_msg_debug( sToSend );
+
+					Terminal_Msg_Promt( &msgToSend, sToSend );
+					xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 				}
 			}
 		}
@@ -59,11 +60,11 @@ void taskControlOutputs (void * a)
 
 void taskControlInputs (void * a)
 {
-	queue_t dataRecKey;
-	signal_t dataToSend;
+	tecStat_t dataRecKey;
+	ledStat_t dataToSend;
 
 	ciaaTEC_Init();
-	dataToSend.led= (LED_1 | LED_2 | LED_3);
+	ciaaKEY_EnableIRQ( TECL1 );
 
 	while (1)
 	{
@@ -75,10 +76,13 @@ void taskControlInputs (void * a)
 		{
 			if( !dataRecKey.state )
 			{
+				if( TECL1 == dataRecKey.key )
+				{
+					dataToSend.led= LED_1;
+				}
 				xQueueSend( MGR_OUTPUT_QUEUE, &dataToSend, TIMEOUT_QUEUE_INPUT );
 			}
 		}
-
 		vTaskDelay( MGR_INPUT_DELAY );
 	}
 }
@@ -86,19 +90,18 @@ void taskControlInputs (void * a)
 /*==================[irq handlers functions ]=========================*/
 void GPIO0_IRQHandler (void)
 {
-	queue_t dataToSend;
+	tecStat_t dataToSend;
 	portBASE_TYPE xSwitchRequired;
-	uint8_t retaux;
 
 	dataToSend.key= TECL1;
+	dataToSend.state= TECL_FREE;
 
-	retaux= LEVEL_KEY_Detec_From_ISR( TECL1 );
-
-	if( LO_LEVEL == retaux)
+	if( TEC1_PRESSED == ciaaTEC_Level_ISR( TECL1 ) )
 	{
-		dataToSend.state= LO_LEVEL;
-		xQueueSendFromISR( MGR_INPUT_QUEUE, &dataToSend, &xSwitchRequired );
+		dataToSend.state= TECL_PUSH;
 	}
+
+	xQueueSendFromISR( MGR_INPUT_QUEUE, &dataToSend, &xSwitchRequired );
 
 	portEND_SWITCHING_ISR( xSwitchRequired );
 }
