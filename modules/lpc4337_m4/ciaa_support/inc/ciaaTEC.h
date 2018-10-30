@@ -31,14 +31,14 @@ typedef enum _tec_stat
 	TEC3_PRESSED = 0x04,
 	TEC4_PRESSED = 0x08,
 
-} tecStat_t;
+} tecReg_t;
 
 
 void 	ciaaTEC_Init		(void);
 uint8_t ciaaTEC_Status		(tecId_t);
 
-void 	ciaaKEY_EnableIRQ  	(tecId_t);
-void 	ciaaKEY_DisableIRQ 	(tecId_t);
+void 	ciaaTEC_EnableIRQ  	(tecId_t);
+void 	ciaaTEC_DisableIRQ 	(tecId_t);
 
 void 	ciaaTEC_DebounInit	(tecId_t);
 uint8_t ciaaTEC_DebounStatus(tecId_t);

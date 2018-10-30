@@ -16,6 +16,13 @@ typedef uint8_t		type_t;
 
 typedef struct
 {
+	uint16_t 	size;
+	char* 		msg;
+	//TickType_t ticktimes;
+} genStr_t;
+
+typedef struct
+{
 	led_t      led;
 	uint16_t  *readVal;
 
@@ -31,20 +38,12 @@ typedef struct
 
 typedef struct
 {
-	uint16_t 	size;
-	uint8_t 	mode;
-	uint8_t 	cmdShell;
-	char* 		msg;
-	//TickType_t ticktimes;
-} terMsg_t;
-
-typedef struct
-{
-	uint16_t 	size;
-	uint16_t 	dummy;
-	char* 		msg;
+	type_t	 	type;
+	uint8_t		dummy;
+	genStr_t 	data;
 	//TickType_t ticktimes;
 } dlogPack_t;
+
 
 /*
 

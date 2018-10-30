@@ -18,14 +18,15 @@
 
 #include "inOutManager.h"
 #include "terminalManager.h"
+#include "filesManager.h"
 
-#define  TIMEOUT_MUTEX_CONSOLA	(( portTickType ) 10	)
-#define  TIMEOUT_QUEUE_INPUT  	(( TickType_t )   500	)
-#define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t )   2000	) // antes tenia portMAX_DELAY
-#define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t )   2	)
-#define  TIMEOUT_QUEUE_MSG_OUT 	(( TickType_t )   500	)
-#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t )   2	)
-#define  TIMEOUT_QUEUE_LOG_OUT 	(( TickType_t )   500	)
+#define  TIMEOUT_MUTEX_CONSOLA	(( TickType_t ) 10		)
+#define  TIMEOUT_QUEUE_INPUT  	(( TickType_t ) 500		)
+#define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t ) 2000	) // antes tenia portMAX_DELAY
+#define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t ) 2		)
+#define  TIMEOUT_QUEUE_MSG_OUT 	(( TickType_t ) 500		)
+#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t ) 2		)
+#define  TIMEOUT_QUEUE_LOG_OUT 	(( TickType_t ) 500		)
 
 // ------------------------------------------------------------------------------------
 #define  NUM_TASK				4
@@ -34,8 +35,8 @@
 // Macros : ----------------------------------------------------------------------------
 #define  ACTUALIZAR_STACK(X,Y)  (*(STACKS_TAREAS+Y)= uxTaskGetStackHighWaterMark(X))
 #define  LIBERAR_TAREA			(taskYIELD())
-#define  TOMAR_SEMAFORO(X,Y)	(xSemaphoreTake(X,Y))
-#define  LIBERAR_SEMAFORO(X)	(xSemaphoreGive(X))
+#define  TOMAR_SEMAFORO(X,Y)	( pdTRUE == xSemaphoreTake(X,Y))
+#define  LIBERAR_SEMAFORO(X)	( pdTRUE == xSemaphoreGive(X))
 
 // -------------------- Definiciones tarea 1  ---------------------
 #define  TASK_N1				taskControlOutputs
@@ -58,7 +59,7 @@
 #define  TASK_N2				taskControlInputs
 #define  TASK_N2_DECRIPT		"Tarea relevadora de entradas por interrupcion."
 // Con esta cantidad de stack le quedan libres 79 Bytes. Le sobran < 1*STACK_SIZE =128
-#define  TASK_N2_STACK			(configMINIMAL_STACK_SIZE*1)
+#define  TASK_N2_STACK			(configMINIMAL_STACK_SIZE*2)
 #define  TASK_N2_PRIORITY		tskIDLE_PRIORITY+1
 #define  TASK_N2_HANDLER		pxCreatedTask2
 #define  TASK_N2_ID_STACK		1
@@ -87,13 +88,13 @@
 
 #define  MGR_TERMINAL_QUEUE		queueTermMsg
 #define  MGR_TERMINAL_QUEUE_SIZ	sizeof(terMsg_t)
-#define  MGR_TERMINAL_QUEUE_LEN	2
+#define  MGR_TERMINAL_QUEUE_LEN	4
 
 // -------------------- Definiciones tarea 4  ---------------------
 #define  TASK_N4				dataLog_Service
 #define  TASK_N4_DECRIPT		"Tarea control de guardado de registros en eeprom."
 // Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
-#define  TASK_N4_STACK			(configMINIMAL_STACK_SIZE*1)
+#define  TASK_N4_STACK			(configMINIMAL_STACK_SIZE*2)
 #define  TASK_N4_PRIORITY		tskIDLE_PRIORITY+1
 #define  TASK_N4_HANDLER		pxCreatedTask4
 #define  TASK_N4_ID_STACK		3
@@ -104,7 +105,7 @@
 
 #define  MGR_DATALOG_QUEUE		queueDataLog
 #define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t)
-#define  MGR_DATALOG_QUEUE_LENGT	2
+#define  MGR_DATALOG_QUEUE_LENGT	5
 // ------------------------------------------------------------------------------------
 
 // ------------------------------------------------------------------------------------

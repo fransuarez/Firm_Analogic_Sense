@@ -10,8 +10,6 @@
 
 #include "lpc_types.h"
 
-
-
 typedef struct type_gpio_input
 {
 

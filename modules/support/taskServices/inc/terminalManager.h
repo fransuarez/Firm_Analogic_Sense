@@ -32,6 +32,16 @@ typedef enum modeprint
 
 } modep_t;
 
+typedef struct
+{
+	uint8_t 	mode;
+	uint8_t 	cmdShell;
+
+	uint16_t 	size;
+	char* 		msg;
+	//TickType_t ticktimes;
+} terMsg_t;
+
 /**********************************************************************/
 
 void 	taskTerminal  ( void * parametrosTarea );
@@ -39,28 +49,28 @@ void 	taskTerminal  ( void * parametrosTarea );
 
 /************************************************************************/
 // Macros:
-static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+static inline void Terminal_Msg_Def( terMsg_t * msgToSend, char* str )
 {
 	msgToSend->msg= str;
 	msgToSend->size= strlen(str);
 	msgToSend->mode= MP_DEF;
 }
 
-static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+static inline void Terminal_Msg_InL( terMsg_t * msgToSend, char* str )
 {
 	msgToSend->msg= str;
 	msgToSend->size= strlen(str);
 	msgToSend->mode= MP_SIN_NL;
 }
 
-static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+static inline void Terminal_Msg_Est( terMsg_t * msgToSend, char* str )
 {
 	msgToSend->msg= str;
 	msgToSend->size= strlen(str);
-	msgToSend->mode= MP_DEF;
+	msgToSend->mode= MP_EST;
 }
 
-static inline void Terminal_Msg_Promt( terMsg_t * msgToSend, char* str )
+static inline void Terminal_Msg_Deb( terMsg_t * msgToSend, char* str )
 {
 	msgToSend->msg= str;
 	msgToSend->size= strlen(str);

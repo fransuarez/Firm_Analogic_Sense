@@ -11,23 +11,19 @@
 
 // ------ Private constants -----------------------------------
 
-#define IRQ_PIN_INT0	0
-#define IRQ_PIN_INT1	1
-#define IRQ_PIN_INT2	2
-#define IRQ_PIN_INT3	3
-
 #define TotalCalls 		10000
 #define KEY_INP_PASS 	TEC3
 #define TECL_TOTAL	 	4
 
 // ------ Private variable ------------------------
-static uint8_t Test3, Test2, Test1, Test0;
-static uint32_t Falling_edge;
+#include "chip.h"
+
+#define IRQ_PIN_INT0	0
+#define IRQ_PIN_INT1	1
+#define IRQ_PIN_INT2	2
+#define IRQ_PIN_INT3	3
 
 // ------ Public variable ------------------------
-uint32_t FrecuenciaFlancos;
-uint32_t TotalFlancos_Tec0; // Si hay un flanco de bajada es 1
-
 typedef struct config_tecl
 {
 	bool		enableIRQ;
@@ -109,13 +105,12 @@ uint8_t ciaaTEC_Status (tecId_t key_id)
 	return gpioBtnIDs;
 }
 
-void ciaaKEY_EnableIRQ (tecId_t key_id)
+void ciaaTEC_EnableIRQ (tecId_t key_id)
 {
-	GPIO_InputIRQEnable( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber,
-						 teclStatus[key_id].idIRQ );
+	GPIO_InputIRQEnable( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber, teclStatus[key_id].idIRQ );
 }
 
-void ciaaKEY_DisableIRQ (tecId_t key_id)
+void ciaaTEC_DisableIRQ (tecId_t key_id)
 {
 	GPIO_InputIRQDisable( teclStatus[key_id].idIRQ );
 }

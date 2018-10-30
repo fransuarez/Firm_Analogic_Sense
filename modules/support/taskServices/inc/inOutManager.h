@@ -13,6 +13,8 @@ void taskControlInputs  (void *);
 void taskControlOutputs (void *);
 
 void GPIO0_IRQHandler (void);
+void GPIO1_IRQHandler (void);
+
 void ADC0_IRQHandler  (void);
 
 #endif /* MODULES_SUPPORT_TASKSERVICES_INC_INOUTMANAGER_H_ */

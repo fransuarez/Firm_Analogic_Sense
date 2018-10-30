@@ -8,10 +8,9 @@
 #include "services_config.h"
 #include "terminalManager.h"
 #include "api_RTC.h"
-#include "ciaaLED.h"
 #include "api_EEPROM.h"
 
-extern xTaskHandle 			MGR_OUTPUT_HANDLER;
+extern xTaskHandle 			MGR_DATALOG_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
 
 extern xQueueHandle 		MGR_DATALOG_QUEUE;
@@ -28,31 +27,32 @@ static RTC_t RTC =
 	.sec  = 0
 };
 
+static char sToSend[124]= "Aun esta vacio";
+
 void dataLog_Service (void * a)
 {
-	ledStat_t dataRecLed;
-	terMsg_t msgToSend;
-	char sToSend[124]= "Aun esta vacio";
+	dlogPack_t dataRecived;
+	static terMsg_t msgToSend;
 
 	RTC_Init();
 	RTC_setTime( &RTC );
 
 	while (1)
 	{
-		ACTUALIZAR_STACK( MGR_DATALOG_HANDLER, MGR_DATALOG_ID_STACK );
-
-		if( pdTRUE == xQueueReceive( MGR_DATALOG_QUEUE, &dataRecLed, TIMEOUT_QUEUE_LOG_INP ))
+		if( pdTRUE == xQueueReceive( MGR_DATALOG_QUEUE, &dataRecived, TIMEOUT_QUEUE_LOG_INP ))
 		{
+			RTC_getTime(&RTC);
+			sprintf( sToSend, "%2d:%2d:%2d-%s", RTC.hour, RTC.min, RTC.sec, dataRecived.data.msg );
 
-			sprintf( sToSend, "[%d:%d:%d - AI%d = %i uni]\r\n",
-					 RTC.hour, RTC.min, RTC.sec,i, dataRecLed.readVal[i] );
-
-			Terminal_Msg_Promt( &msgToSend, sToSend );
+			Terminal_Msg_Def( &msgToSend, sToSend );
 			xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 		}
 		else
 		{
 		}
+
+		ACTUALIZAR_STACK( MGR_DATALOG_HANDLER, MGR_DATALOG_ID_STACK );
+		vTaskDelay( MGR_DATALOG_DELAY );
 	}
 }
 

@@ -56,7 +56,7 @@ static int  readTerminal	 ( char *, int , void * );
 static int  writeTerminal	 ( const char *, int , void * );
 static int  callParserShell	 ( const char *, void * );
 static int  sendCommandShell ( char * );
-static void printTerminal 	 ( terMsg_t * msg );
+static void printTerminal 	 ( terMsg_t * objMsg );
 
 
 /* Funciones publicas **************************************************/
@@ -72,11 +72,10 @@ void taskTerminal (void * parametrosTarea)
     sendStr_DEBUG(MSG_BIENVENIDA);
     ntshell_init(&nts, readTerminal, writeTerminal, callParserShell, extobj);
     ntshell_set_prompt(&nts, MSG_PROMPT);
-    printTerminal(nts.prompt, MP_DEF);
+    sendStr_DEBUG(nts.prompt);
 
 	while(1)
 	{
-		ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
 		ntshell_execute(&nts);
 
 		if( INTERNO == inputDatos )
@@ -97,6 +96,7 @@ void taskTerminal (void * parametrosTarea)
 			}
 		}
 
+		ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
 		vTaskDelay( MGR_TERMINAL_DELAY );
 	}
 }
@@ -105,13 +105,14 @@ void taskTerminal (void * parametrosTarea)
  * Funcion que envia un string a la terminal de debuging.
  * Al usar RTOS la misma debe de tener acceso sobre el recurso.
  */
-static void printTerminal( terMsg_t * msg )
+static void printTerminal( terMsg_t * objMsg )
 {
 #ifdef USE_RTOS
-	TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA);
+	if( TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA) )
+	{
 #endif
 
-	switch (msg->mode) {
+	switch (objMsg->mode) {
 	    case MP_DEB:
 	    	sendStr_DEBUG( MSG_MODO_DEBUG );
 	    	break;
@@ -125,12 +126,16 @@ static void printTerminal( terMsg_t * msg )
 	    default:
 	    	sendStr_DEBUG( MSG_MODO_DEFAULT );
 	}
-	if( !sendStr_DEBUG( msg->msg ))
+	if( !sendStr_DEBUG( objMsg->msg ))
 	{
 		nOverFullCS++;
 	}
 #ifdef USE_RTOS
-	LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX );
+	if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
+	{
+		nOverFullCS++;
+	}
+	}
 #endif
 }
 
@@ -145,7 +150,8 @@ static int writeTerminal(const char *buf, int cnt, void *extobj)
 {
 	int i = 0;
 #ifdef USE_RTOS
-	TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA);
+	if( TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA) )
+	{
 #endif
 
     for (; i < cnt; i++)
@@ -154,7 +160,11 @@ static int writeTerminal(const char *buf, int cnt, void *extobj)
     }
 
 #ifdef USE_RTOS
-	LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX );
+	if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
+	{
+		i++;
+	}
+	}
 #endif
 
     return cnt;

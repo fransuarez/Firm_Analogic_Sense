@@ -7,9 +7,13 @@
 
 #include "chip.h"
 
-#define INT_IRQ_ID(X)	(PIN_INT0_IRQn+(X))
+#define INT_IRQ_ID(X)		( PIN_INT0_IRQn+(X) )
+#define PINT_IRQ_ID(X)		( (X)-PIN_INT0_IRQn )
 
-#define PULLUP_BUFFER	(MD_PUP|MD_EZI)
+#define PULLUP_BUFFER		( MD_PUP|MD_EZI )
+#define CH_ID_TO_IRQ_ID(X)	( INT_IRQ_ID(sqrt(X)) )
+#define IRQ_ID_TO_CH_ID(X)	( 1<<PINT_IRQ_ID(X) )
+#define CH_ID_TO_PIN_SEL(X)	( sqrt(X) )
 
 
 void GPIO_EnablePin (uint8_t pinPort, uint8_t pinNumber, uint8_t func, uint8_t gpioPort, uint8_t gpioNumber, uint8_t mode)
@@ -36,13 +40,12 @@ bool GPIO_GetLevel (uint8_t gpioPort, uint8_t gpioPin)
 void GPIO_InputIRQEnable (uint8_t gpioPort, uint8_t gpioPin, uint8_t chId)
 {
     Chip_PININT_Init( LPC_GPIO_PIN_INT );
-    Chip_SCU_GPIOIntPinSel( INT_IRQ_ID(chId), gpioPort, gpioPin );
-
+    Chip_SCU_GPIOIntPinSel( chId , gpioPort, gpioPin );
     Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH(chId) );
     Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH(chId) );
 
     Chip_PININT_EnableIntLow  ( LPC_GPIO_PIN_INT, PININTCH(chId) );
-    Chip_PININT_EnableIntHigh ( LPC_GPIO_PIN_INT, PININTCH(chId) );
+    //Chip_PININT_EnableIntHigh ( LPC_GPIO_PIN_INT, PININTCH(chId) );
 	/* Set lowest priority for RIT */
 	NVIC_SetPriority( INT_IRQ_ID(chId), ((1<<__NVIC_PRIO_BITS) - 1) );
 
