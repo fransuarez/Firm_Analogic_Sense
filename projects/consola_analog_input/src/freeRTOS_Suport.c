@@ -17,6 +17,7 @@ xQueueHandle 	 MGR_TERMINAL_QUEUE;
 xQueueHandle 	 MGR_DATALOG_QUEUE;
 
 xSemaphoreHandle MGR_TERMINAL_MUTEX;
+xSemaphoreHandle MGR_INPUT_MUTEX;
 
 // Arreglo con el stack disponible de las tareas creadas en main
 UBaseType_t 	 stacktareas[NUM_TASK];
@@ -82,6 +83,7 @@ int tasks_create ( void )
 	MGR_DATALOG_QUEUE = xQueueCreate( MGR_DATALOG_QUEUE_LENGT, MGR_DATALOG_QUEUE_SIZE );
 
 	MGR_TERMINAL_MUTEX = xSemaphoreCreateMutex();
+	MGR_INPUT_MUTEX= xSemaphoreCreateMutex();
 
 	return retval;
 }

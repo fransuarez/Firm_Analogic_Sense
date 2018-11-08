@@ -8,42 +8,57 @@
 #ifndef MODULES_SUPPORT_SENSADOANALOGICO_
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
+#define REG_OPR_LOG	30	// Numero de registros por operacion de lgo.
+
 /*==================[typedef]================================================*/
-typedef uint16_t	led_t;
 typedef uint8_t		statPin_t;
-typedef uint8_t		tec_t;
 typedef uint8_t		type_t;
+
+typedef enum _type_log
+{
+	writeByte,
+	writeWord,
+	writePage,
+	readByte,
+	readWord,
+	readPage
+} TypeLog_t;
+
+typedef enum _type_port
+{
+	inputDigital,
+	inputAnalog,
+	inputTecl,
+	outputDigital,
+	outputAnalog,
+	outputLed
+
+} TypePort_t;
 
 typedef struct
 {
 	uint16_t 	size;
+	uint16_t 	dummy;
 	char* 		msg;
 	//TickType_t ticktimes;
 } genStr_t;
 
-typedef struct
-{
-	led_t      led;
-	uint16_t  *readVal;
 
-} ledStat_t;
-
-typedef struct
+typedef struct _data_regi
 {
-	tec_t       key;
-	statPin_t   state;
-	uint16_t 	dummy;
-	//TickType_t ticktimes;
-} tecStat_t;
+	type_t 		type;
+	uint8_t 	id;
+	uint16_t 	value; 	// Esto despues se puede optimizar y dejar solo 4 char/bytes que representen un uint32
+} GpioReg_t;			// Tamaño del registro 4 Bytes o 1 Word.
 
 typedef struct
 {
-	type_t	 	type;
-	uint8_t		dummy;
-	genStr_t 	data;
+	uint8_t	 	cmd;
+	uint8_t		nReg;
+	uint16_t	dummy;
+	GpioReg_t* 	data;
 	//TickType_t ticktimes;
 } dlogPack_t;
-
 
 /*
 

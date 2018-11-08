@@ -21,6 +21,7 @@
 #include "filesManager.h"
 
 #define  TIMEOUT_MUTEX_CONSOLA	(( TickType_t ) 10		)
+#define  TIMEOUT_MUTEX_INPUT	(( TickType_t ) 10		)
 #define  TIMEOUT_QUEUE_INPUT  	(( TickType_t ) 500		)
 #define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t ) 2000	) // antes tenia portMAX_DELAY
 #define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t ) 2		)
@@ -36,7 +37,7 @@
 #define  ACTUALIZAR_STACK(X,Y)  (*(STACKS_TAREAS+Y)= uxTaskGetStackHighWaterMark(X))
 #define  LIBERAR_TAREA			(taskYIELD())
 #define  TOMAR_SEMAFORO(X,Y)	( pdTRUE == xSemaphoreTake(X,Y))
-#define  LIBERAR_SEMAFORO(X)	( pdTRUE == xSemaphoreGive(X))
+#define  LIBERAR_SEMAFORO(X)	( pdTRUE == xSemaphoreGive(X) )
 
 // -------------------- Definiciones tarea 1  ---------------------
 #define  TASK_N1				taskControlOutputs
@@ -52,7 +53,7 @@
 #define  MGR_OUTPUT_DELAY 		((TickType_t) 50)
 
 #define  MGR_OUTPUT_QUEUE		queueSigLed
-#define  MGR_OUTPUT_QUEUE_SIZE	sizeof(ledStat_t)
+#define  MGR_OUTPUT_QUEUE_SIZE	sizeof(GpioReg_t)
 #define  MGR_OUTPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 2  ---------------------
@@ -67,9 +68,10 @@
 #define  MGR_INPUT_ID_STACK		TASK_N2_ID_STACK
 #define  MGR_INPUT_HANDLER 		TASK_N2_HANDLER
 #define  MGR_INPUT_DELAY 		((TickType_t) 50)
+#define  MGR_INPUT_MUTEX		mutexGpioReg
 
 #define  MGR_INPUT_QUEUE		queueKeyPad
-#define  MGR_INPUT_QUEUE_SIZE	sizeof(tecStat_t)
+#define  MGR_INPUT_QUEUE_SIZE	sizeof(GpioReg_t)
 #define  MGR_INPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 3  ---------------------

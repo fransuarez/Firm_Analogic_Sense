@@ -63,9 +63,8 @@ static void printTerminal 	 ( terMsg_t * objMsg );
 
 void taskTerminal (void * parametrosTarea)
 {
-    void *extobj = 0;
+    void *extobj = NULL;
 	terMsg_t msgRecived;
-
     ntshell_t nts;
 
     UART_Init();
@@ -86,7 +85,7 @@ void taskTerminal (void * parametrosTarea)
 
 		if( pdTRUE == xQueueReceive( MGR_TERMINAL_QUEUE, &msgRecived, TIMEOUT_QUEUE_MSG_INP ))
 		{
-			if( msgRecived.cmdShell )
+			if( MP_CMD == msgRecived.mode )
 			{
 				sendCommandShell( msgRecived.msg );
 			}

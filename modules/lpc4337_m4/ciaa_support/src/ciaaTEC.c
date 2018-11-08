@@ -186,7 +186,7 @@ uint8_t ciaaTEC_Level_ISR (tecId_t key_id)
 	uint8_t i;
 	uint8_t retval=TECL_RELEASE;
 
-	if( TECL_TOTAL > key_id )
+	if( TECL1_4 > key_id )
 	{
 		if( GPIO_InputIRQHandler( teclStatus[key_id].idIRQ ) )
 		{

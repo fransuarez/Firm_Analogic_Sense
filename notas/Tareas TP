@@ -9,8 +9,8 @@ Tareas proximas TP profesional:
 5- Funcion que muestre el monitoreo de valores de entradas analogicas.
 4- Funcion que arme una tabla con valores de distintas entradas y salidas configurables. Es a modo de visualización por terminal. > NO ahora
 
-5- Implementar la comunicacion a traves de colas entre las tareas no usar espacios/funciones comunes porque esto viola el concepto de alcance
-de cada tarea.
+5- Implementar la comunicacion a traves de colas entre las tareas no usar espacios/funciones comunes porque esto viola el concepto 
+	de alcancede cada tarea.
 6- Implementar listas enlazadas con los datos a escribir en memoria EEPROM con la info de los GPIOS. 
    Se van a ir actualizando, aumentando o acortando en funcion de los datos nuevos recibidios y la cantidad de memoria disponible.
 
@@ -22,7 +22,7 @@ Pasos:
 2_b- Variar la tension en dichas entradas y procesar sus valores con las funciones de señal. > Hecho
 3- Agregar al comando estado el monitoreo constante de las entradas.  
 	Esto se debera hacer cada 3 segundos y solo con las IO activadas.
-4- Implementar el reloj RTC o como se llame el periferico, para registrar en el log.
+4- Implementar el reloj RTC o como se llame el periferico, para registrar en el log. > Hecho
 
 5- Implementar el guardado de N registros por vez en memoria (en principio voy a usar la eeprom interna).
    Tips:
@@ -30,18 +30,16 @@ Pasos:
 	.Solo debe usar una pequeña porcion de la memoria disponible.
 	.La cantidad de registros grabados se indicara en el haeder del espacio de archivo. 
 	.Se podria usar formato FAT que ya predefine este tipo de cosas.  > Muy pesado para una eeprom > NO
-	.Al momento de llegar al final del archivo se comenzara a reescribir desde el principio? 
+	.Al momento de llegar al final del archivo se comenzara a reescribir desde el principio? > SI
 	 Si es asi seria conveniente tener un registro de principio de registros y final. 
-	.Se lo puede pensar como una lista enlazada pero suponiendo cada registro una posicion unica.
-	
+	.Se lo puede pensar como una lista enlazada pero suponiendo cada registro una posicion unica. > NO
 	No hace falta, con solo colocar un registro detras del otro es suficiente ya que no se haran borrados entre medio de la lista.
 	
 6- Agregar algoritmos para medir conductividad en el primer modelo.¿? Por el momento hacerlo medio hardcodeado. > NO
 
-7- Reservar una arreglo con objetos GPIO con sus valores anterior y actual. 
-   Tambien con un parametro de activacion, y estado de salud.
-8- Los periodos de las tareas se manejaran con delay internos y timeouts. En funcion del estado donde este cada tarea determinara los delay para 
-   la proxima llamada a la misma. De este modo se puede gestionar cuando ejecutar cada una.
+7- Reservar una arreglo con objetos GPIO con sus valores anterior y actual. Tambien con un parametro de activacion, y estado de salud.
+8- Los periodos de las tareas se manejaran con delay internos y timeouts. En funcion del estado donde este cada tarea determinara 
+	los delay para la proxima llamada a la misma. De este modo se puede gestionar cuando ejecutar cada una.
 	Ver rutina: void FreeRTOSDelay (uint32_t ms)
 
 9- Los timers los puedo usar para las tareas programadas. Serian utiles en casos donde se debe activar una accion repetitiva o una alarma.
@@ -53,7 +51,8 @@ Nota 3: Mover las funciones drivers de señales GPIO a la libreria correspondien
 
 -------------------------------------------------------------------------------------------------------------------------------------------
 Obs 1: Pensar siempre como una implementacion alejada lo mas posible de este RTOS. 
-Obs 2: El manejo de variables deberia ser lo mas local posible a cada modulo. -> lo ideal seria que pudieran existir de modo indepndiente cada una!
+Obs 2: El manejo de variables deberia ser lo mas local posible a cada modulo. Lo ideal seria que pudieran existir de modo 
+		indepndiente cada una!
 
 
 Open OCD 
@@ -93,11 +92,7 @@ https://www.freertos.org/FreeRTOS-Coding-Standard-and-Style-Guide.html#NamingCon
 http://web.ist.utl.pt/~ist11993/FRTOS-API/group___timer.html#pvTimerGetTimerID
 https://community.nxp.com/docs/DOC-332152
 
-8-10 	(0 a 2 meses) 	6 kg >> 9 x30x2	= 360 > Chicos
-7-8		(2 a 3 meses) 	7 kg >> 7,5 x31	= 232
-6-8		(3 a 4 meses)	8 kg >> 7 x30	= 210
-4-5 	(4 a 5 meses)	8 kg >> 4,5 x30	= 135
-										= 580 > Medianos
 
+										
 
 

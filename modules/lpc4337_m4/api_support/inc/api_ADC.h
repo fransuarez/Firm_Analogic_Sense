@@ -35,12 +35,16 @@
 #define CIAAAIN_H_
 
 //#include "chip.h"
-#define  ADC_CH0_ID		0
-#define  ADC_CH1_ID		1
-#define  ADC_CH2_ID		2
+#define  AIN_1			1
+#define  AIN_2			2
+#define  AIN_3			3
+
+#define  ADC_COTA_SUP 	( 1<<10 )
+#define  ADC_COTA_INF 	( 0 )
+
 
 void 	 ADC_init		(void);
-uint16_t* ADC_read		(void);
+uint16_t ADC_read		(uint8_t);
 void 	 ADC_IRQ0Support(void);
 
 void 	 DAC_init		(void);

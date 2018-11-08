@@ -23,9 +23,11 @@
 #define MSG_MODO_CONTINUO 	" "
 #define MSG_MODO_DEFAULT  	"\r\n "
 
+
 typedef enum modeprint
 {
-	MP_DEF=0,
+	MP_CMD=0,
+	MP_DEF,
 	MP_DEB,
 	MP_EST,
 	MP_SIN_NL
@@ -35,7 +37,7 @@ typedef enum modeprint
 typedef struct
 {
 	uint8_t 	mode;
-	uint8_t 	cmdShell;
+	uint8_t 	dummy;
 
 	uint16_t 	size;
 	char* 		msg;

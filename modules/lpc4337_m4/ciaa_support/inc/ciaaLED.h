@@ -11,15 +11,17 @@
 #include "lpc_types.h"
 
 /*==================[macros]=================================================*/
-#define FIRSTLED	   	2
+#define FIRSTLED	   2
 #define SELECT_LED(A) (A+FIRSTLED)
 
 typedef enum
 {
-	LED_1=0x01,
-	LED_2=0x02,
-	LED_3=0x04,
-	LED_4=0x08
+	LED_R= 0,
+	LED_G,
+	LED_B,
+	LED_1,
+	LED_2,
+	LED_3,
 
 } leds_t;
 

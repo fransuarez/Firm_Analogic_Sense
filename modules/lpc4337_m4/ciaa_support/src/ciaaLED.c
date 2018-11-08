@@ -8,11 +8,6 @@
 #include "ciaaGPIO_def.h"
 #include "api_GPIO.h"
 
-#define LEDS_LED1           0x01
-#define LEDS_LED2           0x02
-#define LEDS_LED3           0x04
-#define LEDS_LED4           0x08
-#define LEDS_NO_LEDS        0x00
 #define LEDS_TOTAL 		    6
 
 

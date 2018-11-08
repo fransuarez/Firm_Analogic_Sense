@@ -36,6 +36,9 @@
 
 #define ADC_INPUTS	3
 #define ADC_USE_IRQ 0
+#define ADC_COTA_SUP ( 1<<10 )
+
+
 static uint16_t current_in[ADC_INPUTS];
 
 void ADC_init (void)
@@ -59,23 +62,19 @@ void ADC_init (void)
 #endif
 }
 
-uint16_t* ADC_read (void)
+uint16_t ADC_read (uint8_t chId)
 {
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT) )
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
-	}
+	uint16_t retval= ADC_COTA_SUP;
 
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT) )
+	if( ADC_CH0<chId && ADC_CH4>chId )
 	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
+		if( SET == Chip_ADC_ReadStatus(LPC_ADC0, chId, ADC_DR_DONE_STAT) )
+		{
+			Chip_ADC_ReadValue(LPC_ADC0, chId, current_in+chId-1);
+			retval= current_in[chId-1];
+		}
 	}
-
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH3, ADC_DR_DONE_STAT) )
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
-	}
-	return current_in;
+	return retval;
 }
 
 void ADC_IRQ0Support (void)
@@ -100,7 +99,7 @@ void ADC_IRQ0Support (void)
 	NVIC_ClearPendingIRQ( ADC0_IRQn );
 }
 
-void DAC_init(void)
+void DAC_init (void)
 {
 	Chip_DAC_Init(LPC_DAC);
 
@@ -110,7 +109,7 @@ void DAC_init(void)
 }
 
 /* [in] level: Output level (0 - 100%) */
-void DAC_set(float level)
+void DAC_set (float level)
 {
 	if(level > 100) level = 100;
 
