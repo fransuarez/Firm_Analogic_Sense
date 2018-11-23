@@ -8,7 +8,7 @@
 #include "ciaaGPIO_def.h"
 #include "api_GPIO.h"
 
-#define LEDS_TOTAL 		    6
+#define LEDS_TOTAL 		( 6 )
 
 
 static const io_port_t gpioLEDBits[LEDS_TOTAL] =
@@ -43,22 +43,25 @@ void ciaaLED_Init (void)
 
 void ciaaLED_Set (uint8_t LEDNumber, bool stat)
 {
-	if (LEDNumber < LEDS_TOTAL )
+	if ( LEDS_VALID(LEDNumber) )
 	{
-		GPIO_SetLevel( gpioLEDBits[LEDNumber].pinPort, gpioLEDBits[LEDNumber].pinNumber, stat );
+		GPIO_SetLevel( gpioLEDBits[LEDS_INDEX(LEDNumber)].pinPort, gpioLEDBits[LEDS_INDEX(LEDNumber)].pinNumber, stat );
 	}
 }
 
 bool ciaaLED_Test (uint8_t LEDNumber)
 {
-	if (LEDNumber < LEDS_TOTAL )
+	if ( LEDS_VALID(LEDNumber) )
 	{
-		return GPIO_GetLevel( gpioLEDBits[LEDNumber].pinPort, gpioLEDBits[LEDNumber].pinNumber );
+		return GPIO_GetLevel( gpioLEDBits[LEDS_INDEX(LEDNumber)].pinPort, gpioLEDBits[LEDS_INDEX(LEDNumber)].pinNumber );
 	}
 	return false;
 }
 
 void ciaaLED_Toggle(uint8_t LEDNumber)
 {
-	ciaaLED_Set(LEDNumber, !ciaaLED_Test(LEDNumber));
+	if ( LEDS_VALID(LEDNumber) )
+	{
+		ciaaLED_Set( LEDS_INDEX(LEDNumber), !ciaaLED_Test(LEDS_INDEX(LEDNumber)) );
+	}
 }

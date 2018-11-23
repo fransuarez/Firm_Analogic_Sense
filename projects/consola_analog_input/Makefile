@@ -34,17 +34,16 @@ PROJECT_NAME := $(notdir $(PROJECT))
 
 # Modules needed by the application
 PROJECT_MODULES := \
-                   modules/support/taskServices		\
-                   modules/support/sensadoAnalogico \
-                   modules/support/cmdShell 		\
-                   modules/support/dspMath			\
                    modules/external/freertos 		\
-                   modules/external/tinyShell 		\
                    modules/external/colasCirculares \
+                   modules/support/taskServices		\
+                   modules/support/cmdShell 		\
+                   modules/external/tinyShell 		\
                    modules/$(TARGET)/ciaa_support	\
+                   modules/support/dspMath			\
                    modules/$(TARGET)/api_support	\
                    modules/$(TARGET)/base 			\
-                   modules/$(TARGET)/chip			  
+                   modules/$(TARGET)/chip			                   	
 
 # source files folder
 PROJECT_SRC_FOLDERS := $(PROJECT)/src

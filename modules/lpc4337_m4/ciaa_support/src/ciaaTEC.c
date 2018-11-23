@@ -7,16 +7,19 @@
 
 #include "ciaaGPIO_def.h"
 #include "api_GPIO.h"
-#include "ciaaTEC.h"
+#include "chip.h"
+
+//#include "ciaaTEC.h"
 
 // ------ Private constants -----------------------------------
 
 #define TotalCalls 		10000
 #define KEY_INP_PASS 	TEC3
-#define TECL_TOTAL	 	4
 
-// ------ Private variable ------------------------
-#include "chip.h"
+#define ERROR_ID_TECLA  99
+#define TECL_PUSH 		1
+#define TECL_FREE 		0
+#define TECL_TOTAL	 	4
 
 #define IRQ_PIN_INT0	0
 #define IRQ_PIN_INT1	1
@@ -79,17 +82,17 @@ void ciaaTEC_Init (void)
 	}
 }
 
-uint8_t ciaaTEC_Status (tecId_t key_id)
+uint8_t ciaaTEC_Status (uint8_t key_id)
 {
 	uint8_t gpioBtnIDs= TECL_RELEASE;
 	uint8_t i;
+	uint8_t id= TECL_INDEX(key_id);
 
-
-	if( TECL_TOTAL > key_id )
+	if( TECL_VALID(key_id ) )
 	{
-		if ( !GPIO_GetLevel( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber ))
+		if ( !GPIO_GetLevel( gpioBtnBits[id].pinPort, gpioBtnBits[id].pinNumber ))
 		{
-			gpioBtnIDs = (1<<key_id);
+			gpioBtnIDs = (1<<id);
 		}
 	}
 	else
@@ -105,26 +108,35 @@ uint8_t ciaaTEC_Status (tecId_t key_id)
 	return gpioBtnIDs;
 }
 
-void ciaaTEC_EnableIRQ (tecId_t key_id)
+void ciaaTEC_EnableIRQ (uint8_t key_id)
 {
-	GPIO_InputIRQEnable( gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber, teclStatus[key_id].idIRQ );
+	if( TECL_VALID(key_id) )
+	{
+		GPIO_InputIRQEnable( gpioBtnBits[TECL_INDEX(key_id)].pinPort,
+							 gpioBtnBits[TECL_INDEX(key_id)].pinNumber,
+							 teclStatus[TECL_INDEX(key_id)].idIRQ 		);
+	}
 }
 
-void ciaaTEC_DisableIRQ (tecId_t key_id)
+void ciaaTEC_DisableIRQ (uint8_t key_id)
 {
-	GPIO_InputIRQDisable( teclStatus[key_id].idIRQ );
+	if( TECL_VALID(key_id) )
+	{
+		GPIO_InputIRQDisable( teclStatus[TECL_INDEX(key_id)].idIRQ );
+	}
 }
 
-void ciaaTEC_DebounInit (tecId_t key_id)
+void ciaaTEC_DebounInit (uint8_t key_id)
 {
 	uint8_t i;
+	uint8_t id= TECL_INDEX(key_id);
 
-	if( TECL_TOTAL > key_id )
+	if( TECL_VALID(key_id) )
 	{
-		teclStatus[key_id].Test0= TECL_FREE;
-		teclStatus[key_id].Test1= TECL_FREE;
-		teclStatus[key_id].Test2= TECL_FREE;
-		teclStatus[key_id].Test3= TECL_FREE;
+		teclStatus[id].Test0= TECL_FREE;
+		teclStatus[id].Test1= TECL_FREE;
+		teclStatus[id].Test2= TECL_FREE;
+		teclStatus[id].Test3= TECL_FREE;
 	}
 	else
 	{
@@ -138,25 +150,26 @@ void ciaaTEC_DebounInit (tecId_t key_id)
 	}
 }
 
-uint8_t ciaaTEC_DebounStatus (tecId_t key_id)
+uint8_t ciaaTEC_DebounStatus (uint8_t key_id)
 {
-	uint8_t i;
 	uint8_t retval= TECL_RELEASE;
+	uint8_t i;
+	uint8_t id= TECL_INDEX(key_id);
 
-	if( TECL_TOTAL > key_id )
+	if( TECL_VALID(id) )
 	{
 		// Actualizar muestras
-		teclStatus[key_id].Test3 = teclStatus[key_id].Test2;
-		teclStatus[key_id].Test2 = teclStatus[key_id].Test1;
-		teclStatus[key_id].Test1 = teclStatus[key_id].Test0;
+		teclStatus[id].Test3 = teclStatus[id].Test2;
+		teclStatus[id].Test2 = teclStatus[id].Test1;
+		teclStatus[id].Test1 = teclStatus[id].Test0;
 
-		teclStatus[key_id].Test0 = GPIO_GetLevel(gpioBtnBits[key_id].pinPort, gpioBtnBits[key_id].pinNumber);
+		teclStatus[id].Test0 = GPIO_GetLevel(gpioBtnBits[id].pinPort, gpioBtnBits[id].pinNumber);
 
-		if ((TECL_FREE == teclStatus[key_id].Test3) && (TECL_FREE == teclStatus[key_id].Test2) &&
-			(TECL_PUSH == teclStatus[key_id].Test1) && (TECL_PUSH == teclStatus[key_id].Test0))
+		if ((TECL_FREE == teclStatus[id].Test3) && (TECL_FREE == teclStatus[id].Test2) &&
+			(TECL_PUSH == teclStatus[id].Test1) && (TECL_PUSH == teclStatus[id].Test0))
 		{
 			// Flanco de bajada detectado.
-			retval= (1<<key_id);
+			retval= (1<<id);
 		}
 	}
 	else
@@ -181,16 +194,18 @@ uint8_t ciaaTEC_DebounStatus (tecId_t key_id)
 	return retval;
 }
 
-uint8_t ciaaTEC_Level_ISR (tecId_t key_id)
+uint8_t ciaaTEC_Level_ISR (uint8_t key_id)
 {
-	uint8_t i;
 	uint8_t retval=TECL_RELEASE;
+	uint8_t i;
+	uint8_t id= TECL_INDEX(key_id);
 
-	if( TECL1_4 > key_id )
+
+	if( TECL_VALID(key_id) )
 	{
-		if( GPIO_InputIRQHandler( teclStatus[key_id].idIRQ ) )
+		if( GPIO_InputIRQHandler( teclStatus[id].idIRQ ) )
 		{
-			retval = (1<<key_id);
+			retval = (1<<id);
 		}
 	}
 	else

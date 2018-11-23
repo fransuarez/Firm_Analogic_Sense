@@ -101,9 +101,9 @@ static void initHardware(void)
 }
 #define TWAIT	   20
 #define PERIODO	 1000
-#define LED_R		0
-#define LED_1		3
-#define LED_2		4
+//#define LED_R		0
+//#define LED_1		3
+//#define LED_2		4
 
 
 static void taskControlLed(void * a)

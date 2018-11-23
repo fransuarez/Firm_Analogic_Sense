@@ -72,15 +72,16 @@ static volt_t voltFromTempK (temp_t dTempRef);
  * - coeficientes del modelo Beta donde {R0, T0, Beta} si se usa el MODELO_BETA.
  * @return valor de la resistencia equivalente en ohms.
  */
-double tstorTempToRes (double dT, cntc_t* dCoeff)
+resi_t tstorTempToRes (temp_t dT, cntc_t* dCoeff)
 {
-	double r= ERROR_CALC;
-	double u, v, c, x, y;
+	resi_t r= ERROR_CALC;
+	double c, x, y;
 
 	dT+= OFFSET_KELVIN;
 	if( dCoeff && (0<dT) && ( dCoeff->A && dCoeff->B && dCoeff->C) )
 	{
 #if MODELO_TERMISTOR == MODELO_SHEINART
+		double u, v;
 
 		x = ( dCoeff->A - 1.0/dT )/( dCoeff->C );
 		c = ( dCoeff->B )/( 3*dCoeff->C );
@@ -89,14 +90,14 @@ double tstorTempToRes (double dT, cntc_t* dCoeff)
 		u = pow( (y - x/2), 1/3 );
 		v = pow( (y + x/2), 1/3 );
 
-		r  = exp(u - v);
+		r = (resi_t) (exp(u - v));
 
 #else
-		x = dCoeff->A;
-		c = 1/dCoeff->B-1/dT;
-		y = (dCoeff->C)*c*(-1);
+		x = (dCoeff->A);
+		c = (1/(double)dT)-(1/(dCoeff->B));
+		y = (dCoeff->C)*c;
 
-		r = x*exp(y);
+		r = (resi_t) (x*exp(y));
 #endif
 	}
 
@@ -112,9 +113,9 @@ double tstorTempToRes (double dT, cntc_t* dCoeff)
  * @return valor de temperatura en °C.
  */
 
-double tstorResToTemp (double dR, cntc_t* dCoeff)
+temp_t tstorResToTemp (resi_t dR, cntc_t* dCoeff)
 {
-	double ti= ERROR_TEMP;
+	temp_t ti= ERROR_TEMP;
 	double x, y;
 
 	if( dCoeff && (1<dR) && (dCoeff->A && dCoeff->B && dCoeff->C) )
@@ -127,26 +128,31 @@ double tstorResToTemp (double dR, cntc_t* dCoeff)
 		ti = 1.0/ti;
 
 #else
-		x = dCoeff->C;
-		y = dCoeff->A*exp(-(x/dCoeff->B));
+		x = (dCoeff->C);
+		y = (dCoeff->A)*exp(-(x/dCoeff->B));
 
-		ti = x/log(dR/y);
+		ti = (temp_t)(x/log((double)dR/y));
 #endif
 
-		ti -= OFFSET_KELVIN;
+		ti-= OFFSET_KELVIN;
 	}
-
 	return ti;
 }
 
-int tstorCalcCoef ( double dR[], double dT[], cntc_t* dCoeff )
+
+int tstorCalcCoef ( resi_t dR[], temp_t dT[], cntc_t* dCoeff )
 {
-	double L1, L2, L3;
+	double L1, L2;
 	double G1, G2;
+	double T1, T2;
+	int retval= 0;
 
 	if( dCoeff )
 	{
 #if MODELO_TERMISTOR == MODELO_SHEINART
+		double L3;
+		double T3;
+
 		// La resistencia debe ser distinta a 0 y no pueden ser valores similares ya que las muestras deben ser distintas:
 		if( 0<dR[0] && 0<dR[1] && 0<dR[2] && (dR[0] != dR[1]) && (dR[0] != dR[2]) && (dR[1] != dR[2]) )
 		{
@@ -154,48 +160,48 @@ int tstorCalcCoef ( double dR[], double dT[], cntc_t* dCoeff )
 			L2= log( dR[1] );
 			L3= log( dR[2] );
 
-			dT[0] +=OFFSET_KELVIN;
-			dT[1] +=OFFSET_KELVIN;
-			dT[2] +=OFFSET_KELVIN;
+			T1= dT[0]+OFFSET_KELVIN;
+			T2= dT[1]+OFFSET_KELVIN;
+			T3= dT[2]+OFFSET_KELVIN;
 
-			// La temperatura esta en grados Kelvin no puede ser 0:
-			if( dT[0] && dT[1] && dT[2] )
-			{
-				G1= (1/dT[1]-1/dT[0])/(L2-L1);
-				G2= (1/dT[2]-1/dT[0])/(L3-L1);
+			// La temperatura esta en grados Kelvin no puede ser 0.
+			G1= (1/T2-1/T1)/(L2-L1);
+			G2= (1/T3-1/T1)/(L3-L1);
 
-				dCoeff->C= (G2-G1)/(L3-L2)/(L1+L2+L3);
-				dCoeff->B= G1 - dCoeff->C*( L1*L1 + L1*L2 + L2*L2);
-				dCoeff->A= 1/dT[0] - dCoeff->B*L1 - dCoeff->C*L1*L1*L1;
+			dCoeff->C= (G2-G1)/(L3-L2)/(L1+L2+L3);
+			dCoeff->B= (G1) - (dCoeff->C*( L1*L1 + L1*L2 + L2*L2));
+			dCoeff->A= (1/T1) - (dCoeff->B*L1) - (dCoeff->C*L1*L1*L1);
 
-				return 1;
-			}
+			retval= 1;
 		}
 #else
-		if( 0<dR[0] && 0<dR[1] && (dR[0] != dR[1]) )
+		if( dR[0] && dR[1] && (dR[0] != dR[1]) && (dT[0] != dT[1]) )
 		{
-			L1= log( dR[0] );
-			L2= log( dR[1] );
+			T1= dT[0]+OFFSET_KELVIN;
+			T2= dT[1]+OFFSET_KELVIN;
 
-			dT[0] +=OFFSET_KELVIN;
-			dT[1] +=OFFSET_KELVIN;
+			G1= (double)dR[0];
+			G2= (double)dR[1];
+			L1= log( G1 );
+			L2= log( G2 );
 
-			if( dT[0] && dT[1] )
+			dCoeff->C= (double)(L1-L2)/(1/T1-1/T2);
+			dCoeff->B= T1;
+			dCoeff->A= G1;
+
+			// Calculo la R a 25°C que es la que se usara para calcular luego los demas puntos.
+			T1= 25;
+			G1= tstorTempToRes( T1, dCoeff );
+			if( ERROR_CALC != G1 )
 			{
-				G1= 1/dT[0];
-				G2= 1/dT[1];
-
-				dCoeff->C= (L2-L1)/(G2-G1);
-				dCoeff->B= dT[0];
-				dCoeff->A= dR[0];
-
-				return 1;
+				dCoeff->A= G1;
+				dCoeff->B= T1+OFFSET_KELVIN;
+				retval= 1;
 			}
 		}
-
 #endif
 	}
-	return 0;
+	return retval;
 }
 
 // -----------------------------------------------------------------------------

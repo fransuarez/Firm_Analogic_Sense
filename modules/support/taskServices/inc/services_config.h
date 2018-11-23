@@ -22,7 +22,7 @@
 
 #define  TIMEOUT_MUTEX_CONSOLA	(( TickType_t ) 10		)
 #define  TIMEOUT_MUTEX_INPUT	(( TickType_t ) 10		)
-#define  TIMEOUT_QUEUE_INPUT  	(( TickType_t ) 500		)
+#define  TIMEOUT_QUEUE_INPUT  	(( TickType_t ) 2000	)
 #define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t ) 2000	) // antes tenia portMAX_DELAY
 #define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t ) 2		)
 #define  TIMEOUT_QUEUE_MSG_OUT 	(( TickType_t ) 500		)
@@ -53,7 +53,7 @@
 #define  MGR_OUTPUT_DELAY 		((TickType_t) 50)
 
 #define  MGR_OUTPUT_QUEUE		queueSigLed
-#define  MGR_OUTPUT_QUEUE_SIZE	sizeof(GpioReg_t)
+#define  MGR_OUTPUT_QUEUE_SIZE	sizeof(dOutputQueue_t)
 #define  MGR_OUTPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 2  ---------------------
@@ -71,7 +71,7 @@
 #define  MGR_INPUT_MUTEX		mutexGpioReg
 
 #define  MGR_INPUT_QUEUE		queueKeyPad
-#define  MGR_INPUT_QUEUE_SIZE	sizeof(GpioReg_t)
+#define  MGR_INPUT_QUEUE_SIZE	sizeof(dInputQueue_t)
 #define  MGR_INPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 3  ---------------------
@@ -106,8 +106,8 @@
 #define  MGR_DATALOG_DELAY 		((TickType_t) 10)
 
 #define  MGR_DATALOG_QUEUE		queueDataLog
-#define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t)
-#define  MGR_DATALOG_QUEUE_LENGT	5
+#define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t )
+#define  MGR_DATALOG_QUEUE_LENGT 2
 // ------------------------------------------------------------------------------------
 
 // ------------------------------------------------------------------------------------

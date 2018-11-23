@@ -14,17 +14,6 @@
 #define FIRSTLED	   2
 #define SELECT_LED(A) (A+FIRSTLED)
 
-typedef enum
-{
-	LED_R= 0,
-	LED_G,
-	LED_B,
-	LED_1,
-	LED_2,
-	LED_3,
-
-} leds_t;
-
 void ciaaLED_Init 	(void);
 
 // API LED

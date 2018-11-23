@@ -71,6 +71,86 @@
 #define GPIO_OUT_MODE		1
 #define GPIO_INP_MODE		0
 
+// * MACROS **********************************************************
+#define TECL_VALID(X) 	( (TECL1<=X) && (TECL4>=X) )
+#define LEDS_VALID(X) 	( (LED_R<=X) && (LED_3>=X) )
+#define AINP_VALID(X) 	( (AIN_1<=X) && (AIN_3>=X) )
+#define LEDS_INDEX(X)	( X-LED_R )
+#define TECL_INDEX(X)	( X-TECL1 )
+#define AINP_INDEX(X)	( X-AIN_1 )
+#define SENSOR_VALID(X) ( (THERMISTOR<=X) && (WATER_LEVEL>=X) )
+
+
+// **********************************************************************
+typedef enum _perifericos_edu_ciaa
+{
+	LED_R= 0,
+	LED_G,
+	LED_B,
+	LED_1,
+	LED_2,
+	LED_3,
+
+	TECL1,
+	TECL2,
+	TECL3,
+	TECL4,
+	TECL1_4,
+
+	AIN_1,
+	AIN_2,
+	AIN_3
+
+} perif_t;
+
+// No modificar el orden!!!!
+typedef enum _sensor_types
+{
+	TERMOCUPLE=0,
+	THERMISTOR,
+	AMPERIMETER,
+	CONDUCTIMETER,
+	WATER_LEVEL
+
+} sensor_t;
+
+typedef enum _unit_types
+{
+	mVOLTS=0,
+	uVOLTS,
+	OHMS,
+	mOHMS,
+	mFARADS,
+	uFARADS,
+	cMETERS,
+	mMETERS,
+	CELSIUS,
+	AMPERS,
+	mAMPERS,
+	mgSQRMTR
+
+} unit_t;
+
+typedef enum _ciaa_AIN_ajustes
+{
+	ain_cotas_conversion,
+	ain_calibracion,
+	ain_habilitacion,
+	ain_reasignacion
+
+} ainCfg_t;
+
+typedef enum _tec_stat
+{
+	TECL_RELEASE = 0x00,
+	TEC1_PRESSED = 0x01,
+	TEC2_PRESSED = 0x02,
+	TEC3_PRESSED = 0x04,
+	TEC4_PRESSED = 0x08,
+
+} tecReg_t;
+
+
 typedef struct
 {
 	uint8_t pinPort;
@@ -83,6 +163,7 @@ typedef struct
 	uint8_t pinPort;
 	uint8_t pinNumber;
 	uint16_t function;
+
 } dig_port_t;
 
 #endif /* MODULES_LPC4337_M4_CIAA_SUPPORT_INC_CIAAGPIO_DEF_H_ */

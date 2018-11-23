@@ -11,17 +11,22 @@
 #define TEMPERATURAMATH_H_
 #include "lpc_types.h"
 
-#define ERROR_TEMP			-200
-#define ERROR_VOLT			-100
-#define ERROR_CALC			-100
+#define ERROR_TEMP			-273
+#define ERROR_VOLT			-1
+#define ERROR_CALC			0
 
 #define MODELO_BETA			1
 #define MODELO_SHEINART		2
 
 #define MODELO_TERMISTOR	MODELO_BETA  // MODELO_BETA
-
+#if ( MODELO_TERMISTOR==MODELO_BETA )
+#define PTOS_CALIB_TERM		2
+#else
+#define PTOS_CALIB_TERM		3
+#endif
 
 typedef int32_t temp_t;
+typedef uint32_t resi_t;
 typedef float  	volt_t;
 
 typedef struct coeficientes_conversion_Termocupla
@@ -46,15 +51,15 @@ typedef struct confNtc
  * @brief Calcula la resistividad del termistor NTC a partir de los coeficientes de la
  * 		de Steinhart {A,B,C} para esa termistor y la temperatura medida en °C.
  */
-double tstorTempToRes (double dT, cntc_t* dCoeff);
+resi_t tstorTempToRes (temp_t dT, cntc_t* dCoeff);
 
 /*
  * @brief Calcula la temperatura del termistor NTC a partir de los coficientes de la
  * 		de Steinhart {A,B,C} de ese termistor y la resistencia  medida en ohms.
  */
-double tstorResToTemp (double dR, cntc_t* dCoeff);
+temp_t tstorResToTemp (resi_t dR, cntc_t* dCoeff);
 
-int tstorCalcCoef ( double dR[], double dT[], cntc_t* dCoeff );
+int tstorCalcCoef ( resi_t resRef[], temp_t tempRef[], cntc_t* dCoeff );
 
 
 /*

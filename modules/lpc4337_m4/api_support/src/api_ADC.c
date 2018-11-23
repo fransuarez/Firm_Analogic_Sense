@@ -34,12 +34,11 @@
 #include "chip.h"
 //#include "api_ADC.h"
 
-#define ADC_INPUTS	3
-#define ADC_USE_IRQ 0
-#define ADC_COTA_SUP ( 1<<10 )
+#define ADC_USE_IRQ 	0
+#define ADC_INPUTS		( 3 )
+#define ADC_COTA_SUP 	( 1<<10 )
 
-
-static uint16_t current_in[ADC_INPUTS];
+static uint16_t inputRead[ADC_INPUTS];
 
 void ADC_init (void)
 {
@@ -70,32 +69,38 @@ uint16_t ADC_read (uint8_t chId)
 	{
 		if( SET == Chip_ADC_ReadStatus(LPC_ADC0, chId, ADC_DR_DONE_STAT) )
 		{
-			Chip_ADC_ReadValue(LPC_ADC0, chId, current_in+chId-1);
-			retval= current_in[chId-1];
+			Chip_ADC_ReadValue(LPC_ADC0, chId, &retval);
+
+			if( SUCCESS == Chip_ADC_ReadValue( LPC_ADC0, chId, &retval ))
+			{
+				inputRead[chId-ADC_CH1]= retval;
+			}
 		}
 	}
 	return retval;
 }
 
+uint16_t* ADC_refresh ( void )
+{
+	uint8_t chId;
+	uint16_t value;
+
+	for( chId = ADC_CH1; chId < ADC_CH4; ++chId )
+	{
+		if( SET == Chip_ADC_ReadStatus(LPC_ADC0, chId, ADC_DR_DONE_STAT) )
+		{
+			if( SUCCESS == Chip_ADC_ReadValue( LPC_ADC0, chId, &value ))
+			{
+				inputRead[chId-ADC_CH1]= value;
+			}
+		}
+	}
+	return inputRead;
+}
+
 void ADC_IRQ0Support (void)
 {
-#if ( ADC_USE_IRQ == 1 )
-
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH1, ADC_DR_DONE_STAT) )
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH1, current_in);
-	}
-
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH2, ADC_DR_DONE_STAT) )
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH2, current_in+1);
-	}
-
-	if( SET == Chip_ADC_ReadStatus(LPC_ADC0, ADC_CH3, ADC_DR_DONE_STAT) )
-	{
-		Chip_ADC_ReadValue(LPC_ADC0, ADC_CH3, current_in+2);
-	}
-#endif
+	ADC_refresh();
 	NVIC_ClearPendingIRQ( ADC0_IRQn );
 }
 

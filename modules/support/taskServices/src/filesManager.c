@@ -106,9 +106,9 @@ void dataLog_Service (void * a)
 			switch( dataRecived.cmd )
 			{
 				case writePage:
-					sendEeprom.regMem= dataRecived.data;
 					if( TOMAR_SEMAFORO(	MGR_INPUT_MUTEX, TIMEOUT_MUTEX_INPUT) )
 					{
+						sendEeprom.regMem= dataRecived.data;
 						dataLog_Store_Page( dataRecived.nReg );
 						//Terminal_Msg_Def( &msgToSend, sToSend );
 						//xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
