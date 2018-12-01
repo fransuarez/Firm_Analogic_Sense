@@ -35,10 +35,10 @@ typedef struct dataprocess
 typedef struct datosNtc
 {
 	// Datos de entrada:
-	double resisMedida;
+	resi_t resisMedida;
 	// Datos de salida:
-	double tempCalc;
-	double resisCalc;
+	temp_t tempCalc;
+	resi_t resisCalc;
 	double resisError;
 
 } dntc_t;
@@ -95,7 +95,8 @@ static int test1 ( void )
 		if( NULL !=  fd_data_output )
 		{
 			fputs( "T_ref \t V_med \t\tT_cal \t V_cal \t\t V_error \n"
-					"--------------------------------------------------\n", fd_data_output );
+				  "--------------------------------------------------\n", fd_data_output );
+
 			while( !feof( fd_data_input ) )
 			{
 				if( NULL != fgets( data_inp_buffer, SIZE_BUFF, fd_data_input ) )
@@ -210,11 +211,65 @@ static int test2 ( void )
 	return retval;
 }
 
+static int processBuffer ( dproc_t *data, char * buffer, int sizeBuff )
+{
+	char * pTemp, *pVol;
+	volt_t voltaux;
+	temp_t tempaux;
+	int retval= RET_VOID;
+
+	if( NULL != ( pTemp = strchr( buffer, '@' ) ) )
+	{
+		if( NULL != ( pVol = strchr( pTemp, 'V' ) ) )
+		{
+			*pVol='\0';
+			data->tempAmb = atoi( ++pTemp );
+			data->voltTcupla = atof( ++pVol );
+
+			retval= RET_ERROR;
+			tempaux= tcuplaKVoltToTemp( data->voltTcupla, data->tempAmb );
+			if( ERROR_TEMP != tempaux )
+			{
+				data->tempCalc= tempaux;
+
+				voltaux= tcuplaKTempToVolt( tempaux, data->tempAmb );
+				if( ERROR_VOLT != voltaux )
+				{
+					data->voltCalc= voltaux;
+					data->voltError= fabs(voltaux - data->voltTcupla);
+					retval= RET_OK;
+				}
+			}
+		}
+	}
+	return retval;
+}
+
+static int	processDataOk( dproc_t *data, char * buffer )
+{
+	if( 0 < sprintf( buffer, "@%d °C\t %1.3fmV\t %3d°C \t %1.3fmV \t %1.2f\%\n",
+		data->tempAmb, data->voltTcupla, data->tempCalc, data->voltCalc, (data->voltError/data->voltTcupla)*100 ))
+	{
+		return strlen( buffer );
+	}
+	return RET_ERROR;
+}
+
+static int	processDataError( dproc_t *data, char * buffer )
+{
+	if( 0 < sprintf( buffer, "@%d°C\t %1.3fmV\t [Err]\t [Err]\t\t [Err] \n",
+		data->tempAmb, data->voltTcupla) )
+	{
+		return strlen( buffer );
+	}
+	return RET_ERROR;
+}
+
 static int processBufferNtc ( dntc_t *data, char * buffer, int sizeBuff )
 {
 	char * pTemp, *pRes;
-	static double tempCalibracion[3]={0,0,0};
-	static double resisCalibracion[3]={0,0,0};
+	static temp_t tempCalibracion[3]={0,0,0};
+	static resi_t resisCalibracion[3]={0,0,0};
 	static int i=0, conf=0;
 
 	double restaux;
@@ -266,67 +321,12 @@ static int processBufferNtc ( dntc_t *data, char * buffer, int sizeBuff )
 			}
 		}
 	}
-
 	return retval;
-}
-
-static int processBuffer ( dproc_t *data, char * buffer, int sizeBuff )		
-{
-	char * pTemp, *pVol;
-	volt_t voltaux;
-	temp_t tempaux;
-	int retval= RET_VOID;
-
-	if( NULL != ( pTemp = strchr( buffer, '@' ) ) )
-	{
-		if( NULL != ( pVol = strchr( pTemp, 'V' ) ) )
-		{
-			*pVol='\0';
-			data->tempAmb = atoi( ++pTemp );
-			data->voltTcupla = atof( ++pVol );
-
-			retval= RET_ERROR;
-			tempaux= tcuplaKVoltToTemp( data->voltTcupla, data->tempAmb );
-			if( ERROR_TEMP != tempaux )
-			{
-				data->tempCalc= tempaux;
-
-				voltaux= tcuplaKTempToVolt( tempaux, data->tempAmb );
-				if( ERROR_VOLT != voltaux )
-				{
-					data->voltCalc= voltaux;
-					data->voltError= fabs(voltaux - data->voltTcupla);
-					retval= RET_OK;
-				}	
-			}
-		}
-	}
-	return retval;
-}
-
-static int	processDataOk( dproc_t *data, char * buffer )
-{
-	if( 0 < sprintf( buffer, "@%d°C\t %1.3fmV\t %d°C \t %1.3fmV \t %1.2f\%\n",
-		data->tempAmb, data->voltTcupla, data->tempCalc, data->voltCalc, (data->voltError/data->voltTcupla)*100 ))
-	{
-		return strlen( buffer );
-	}
-	return RET_ERROR;
-}
-
-static int	processDataError( dproc_t *data, char * buffer )
-{
-	if( 0 < sprintf( buffer, "@%d°C\t %1.3fmV\t [Err]\t [Err]\t\t [Err] \n",
-		data->tempAmb, data->voltTcupla) )
-	{
-		return strlen( buffer );
-	}
-	return RET_ERROR;
 }
 
 static int	processNtcDataOk( dntc_t *data, char * buffer )
 {
-	if( 0 < sprintf( buffer, "%7d Omhs\t\t%+3.2f °C\t%7d Ohms\t\t%1.2f\%\n",
+	if( 0 < sprintf( buffer, "%7d Ohms\t\t%+3d°C\t%7d Ohms\t\t%1.2f\%\n",
 		(int)data->resisMedida, data->tempCalc, (int)data->resisCalc, (data->resisError/data->resisMedida)*100 ))
 	{
 		return strlen( buffer );

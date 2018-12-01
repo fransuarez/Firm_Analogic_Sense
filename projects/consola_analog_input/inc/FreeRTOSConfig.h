@@ -94,7 +94,7 @@
 #define configCHECK_FOR_STACK_OVERFLOW	1
 #define configUSE_RECURSIVE_MUTEXES		1
 #define configQUEUE_REGISTRY_SIZE		10
-#define configGENERATE_RUN_TIME_STATS	0
+#define configGENERATE_RUN_TIME_STATS	1
 
 /* Set the following definitions to 1 to include the API function, or zero
 to exclude the API function. */
@@ -107,6 +107,10 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil				1
 #define INCLUDE_vTaskDelay					1
 #define INCLUDE_uxTaskGetStackHighWaterMark	1
+
+extern uint32_t TimerForRunTimeStats( void );
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()  (1)
+#define portGET_RUN_TIME_COUNTER_VALUE() TimerForRunTimeStats()
 
 /* Use the system definition, if there is one */
 #ifdef __NVIC_PRIO_BITS

@@ -12,11 +12,25 @@
 #include "ciaaTEC.h"
 #include "ciaaLED.h"
 #include "ciaaAIN.h"
+#include "api_RTC.h"
 
 
-#define SIZE_BUFF_TERM		32
-#define SAMPLE_MAX_SEC		255 //(1<<8)-1 == 4'15"
+#define SIZE_BUFF_TERM		( 32 )
+#define SAMPLE_ANALOG_MSEC	( 15*1000 ) //Viene de
+#define SAMPLE_DIGITAL_MSEC	( 200 )
+#define SAMPLE_DIGITAL_IRQ	( 0 )
 
+#define SAMPLE_MAX_SEC		( 255 ) // Viene de (1<<7)-1 =255 == 4'15"
+#define SAMPLE_MAX_MINUTES	( 4 ) 	// Viene de 2^7-1= 255/60= 4,25-> 4'
+#define SAMPLE_MAX_SECONDS	( 15 ) 	// Viene de 60"+15"
+
+#define RET_VAL_NO_PROCESS  ( 0 )
+#define RET_VAL_OK			( 1 )
+#define RET_VAL_BUFF_FULL	( 2 )
+#define RET_VAL_ERR_QUEUE	( 4 )
+
+
+//**************************************************************************************************
 extern xTaskHandle 			MGR_INPUT_HANDLER;
 extern xTaskHandle 			MGR_OUTPUT_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
@@ -27,31 +41,277 @@ extern xQueueHandle 		MGR_TERMINAL_QUEUE;
 extern xQueueHandle 		MGR_DATALOG_QUEUE;
 extern xSemaphoreHandle 	MGR_INPUT_MUTEX;
 
-static char 				buffSendTerminal[SIZE_BUFF_TERM]= "vacio";
-static GpioReg_t 			regToLog[REG_OPR_LOG];
-static dlogPack_t 			dataToLog = { .cmd= writePage, .data= regToLog, .nReg= REG_OPR_LOG, .minutes=0, .seconds=0 };
-static int idReg=0;
-
-static int historyInputReg (GpioReg_t* data)
+//**************************************************************************************************
+typedef struct periferics_register
 {
-	int retval=0;
+	externId_t 	name;
+	perif_t		id_gpio;
+	uint8_t		enable;
+	uint8_t		satuts;		// CHANGE, MAXIMO, MINIMO, ERROR > b0000
+	uint32_t	seg_time_samples;
 
-	if( data && TOMAR_SEMAFORO(	MGR_INPUT_MUTEX, TIMEOUT_MUTEX_INPUT) )
+	unit_t		unit;
+	shTime_t	time_value;
+	int32_t		value;
+	int32_t		smt_max;
+	int32_t		smt_min;
+
+} perReg_t;
+
+//**************************************************************************************************
+static int sendReg=0;
+
+static RTC_t hdRTC=
+{
+		.mday = 1,
+		.month= 1,
+		.year = 2018,
+		.wday = 1,
+		.hour = 0,
+		.min  = 0,
+		.sec  = 0
+};
+static char 			buffSendTerminal[SIZE_BUFF_TERM]= "vacio";
+static GpioReg_t 		regToLog[REG_OPR_LOG];
+static dlogPack_t 		dataToLog = { .cmd= writePage, .data= regToLog };
+
+static perReg_t stateInputs[EXT_INPUTS_TOTAL]=
+{
 	{
-		memcpy( &regToLog[idReg], data, sizeof(GpioReg_t));
+		.name= TERMOCUPLE, 		 .id_gpio= AIN_1, .enable= TRUE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
+		.unit= CELSIUS, .smt_max= 70, .smt_min= 50,
+	},
+	{
+		.name= THERMISTOR, 		 .id_gpio= AIN_2, .enable= TRUE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
+		.unit= CELSIUS, .smt_max= 50, .smt_min= 10,
+	},
+	{
+		.name= AMPERIMETER, 	 .id_gpio= AIN_3, .enable= TRUE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
+		.unit= AMPERS, 	.smt_max= 70, .smt_min= 20,
+	},
+	{
+		.name= CONDUCTIMETER, 	 .id_gpio= AIN_2, .enable= FALSE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
+		.unit= CELSIUS, .smt_max= 100, .smt_min= 0
+	},
+	{
+		.name= WATER_LEVEL, 	 .id_gpio= AIN_3, .enable= FALSE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
+		.unit= CELSIUS, .smt_max= 1000, .smt_min= 800,
+	},
+	{
+		.name= SW_START_STOP, 	 .id_gpio= TECL1, .enable= TRUE, .seg_time_samples= SAMPLE_DIGITAL_MSEC,
+		.unit= LEVEL,
+	},
+	{
+		.name= SW_INTERRUPT, 	 .id_gpio= TECL2, .enable= TRUE, .seg_time_samples= SAMPLE_DIGITAL_MSEC,
+		.unit= LEVEL,
+	},
+	{
+		.name= SL_OBJECT_DETECT, .id_gpio= TECL3, .enable= TRUE, .seg_time_samples= SAMPLE_DIGITAL_IRQ,
+		.unit= LEVEL,
+	},
+	{
+		.name= SL_MODE_FUNCTION, .id_gpio= DIN_0, .enable= TRUE, .seg_time_samples= SAMPLE_DIGITAL_IRQ,
+		.unit= LEVEL,
+	}
+};
+//**************************************************************************************************
+// TODO agregarla alguna libreria de manejo de tiempos. Lo unico que deberia de pasarle extra es 4' y 15".
+static uint8_t calculateDiffTime (uint8_t initMin, uint8_t initSec, uint8_t endMin, uint8_t endSec)
+{
+	uint8_t sec_diff;
+	uint8_t min_diff;
 
+	min_diff= endMin-initMin;
+	sec_diff= endSec-initSec;
+
+	if( 59 < min_diff )
+	{
+		min_diff= ~min_diff;
+	}
+	if( SAMPLE_MAX_MINUTES < min_diff )
+	{
+		min_diff= SAMPLE_MAX_MINUTES;  // FIXME ver como arreglar este caso de forma correcta.
+	}
+
+	if( 59 < sec_diff )
+	{
+		sec_diff= ~sec_diff;
+	}
+	if( (SAMPLE_MAX_SECONDS<sec_diff) && (SAMPLE_MAX_MINUTES==min_diff) )
+	{
+		sec_diff= SAMPLE_MAX_SECONDS;
+	}
+
+	sec_diff+= min_diff*60;
+	return sec_diff;
+}
+
+static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
+{
+	uint8_t retval=RET_VAL_NO_PROCESS;
+	GpioReg_t histRegGpio;
+
+	static int idReg= 0;
+	static uint8_t minute_init;
+	static uint8_t second_init;
+
+	if( !TOMAR_SEMAFORO( MGR_INPUT_MUTEX, TIMEOUT_MUTEX_INPUT) )
+	{
+		return RET_VAL_ERR_QUEUE;
+	}
+	//if( !sendReg ){}
+	else
+	{
+		if( !idReg )
+		{
+			if( RTC_GET_IN_TIMED() )
+			{
+				RTC_getTime( &hdRTC );
+			}
+			dataToLog.hourSamples= hdRTC.hour;
+			dataToLog.minuSamples= hdRTC.min;
+			minute_init= hdRTC.min;
+			second_init= hdRTC.sec;
+		}
+
+		histRegGpio.name = paqInfoGPIO->data.name;
+		histRegGpio.value= paqInfoGPIO->data.value;
+
+		if( !histRegGpio.secTime )
+		{
+			histRegGpio.secTime= calculateDiffTime( minute_init, second_init, paqInfoGPIO->sTime.minutes, paqInfoGPIO->sTime.seconds );
+		}
+
+		//&regToLog[idReg] << Equivalente
+		memcpy( (dataToLog.data)+idReg, &histRegGpio, sizeof(GpioReg_t));
+
+		retval= RET_VAL_OK;
 		// Si se completa el total de registros entonces reinicia desde el principio y
 		// se debe escibir el registro completo en memoria.
 		if( REG_OPR_LOG <= (++idReg) )
 		{
 			idReg= 0;
-			retval= 1;
+			dataToLog.nReg= REG_OPR_LOG;
+
+			retval|= RET_VAL_BUFF_FULL;
 		}
-		if( LIBERAR_SEMAFORO( MGR_INPUT_MUTEX ) ){};
+	}
+	if( !LIBERAR_SEMAFORO( MGR_INPUT_MUTEX ) )
+	{
+		retval|= RET_VAL_ERR_QUEUE;
 	}
 	return retval;
 }
 
+static uint8_t historyDigInput (dInOutQueue_t * regDigital)
+{
+	uint8_t retval=RET_VAL_NO_PROCESS;
+	int i;
+
+	if( RTC_GET_IN_TIMED() )
+	{
+		RTC_getTime( &hdRTC );
+	}
+
+	i= regDigital->data.name;
+	stateInputs[i].enable= TRUE; // Se supone que si esta aca _> esta activo.
+	// Si coiniciden los registros entonces actualiza el valor leido.
+	if( (stateInputs[i].name == regDigital->data.name) && (LEVEL == stateInputs[i].unit) )
+	{
+		stateInputs[i].value= regDigital->data.value;
+	}
+	else
+	{	// TODO ver que hacer cuando no coincide lo leido con lo configurado.
+		stateInputs[i].name = regDigital->data.name;
+		stateInputs[i].unit = LEVEL;
+		stateInputs[i].id_gpio = regDigital->gpio;
+		stateInputs[i].value= TECL_FREE;
+	}
+	stateInputs[i].time_value.minutes= hdRTC.min;
+	stateInputs[i].time_value.seconds= hdRTC.sec;
+
+	regDigital->sTime.minutes= hdRTC.min;
+	regDigital->sTime.seconds= hdRTC.sec;
+	//regDigital->data.secTime=0;
+	// Se supone que si esta aca es porque vario su valor:
+	// FIXME puedo agregarle una condiion extra, verificando si quiero historizar esta variable
+	if( stateInputs[i].value )
+	{
+		retval= historyRegister( regDigital );
+	}
+	else
+	{
+	// FIXME Esto es una truchada por ahora, hasta que la determinacion de acciones lo haga.
+	// 		 o bien la misma rutina de interrupciones ¿?
+		stateInputs[i].value= TECL_FREE;
+	}
+	return retval;
+}
+
+static uint8_t historyAnInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
+{
+	uint8_t retval= RET_VAL_NO_PROCESS;
+	dInOutQueue_t data_record;
+	uint8_t i, j;
+	uint8_t reg_status;
+
+	if( RTC_GET_IN_TIMED() )
+	{
+		RTC_getTime( &hdRTC );
+	}
+
+	for (j = 0; j < ADC_INPUTS; ++j)
+	{
+		i= regAnalogics[j].name;
+
+		stateInputs[i].enable= regAnalogics[j].enable;
+		if( (stateInputs[i].name == regAnalogics[j].name) && (stateInputs[i].unit == regAnalogics[j].unit) )
+		{
+			stateInputs[i].value= regAnalogics[j].value;
+		}
+		else
+		{	// TODO ver que hacer cuando no coincide lo leido con lo configurado.
+			stateInputs[i].name = regAnalogics[j].name;
+			stateInputs[i].unit = regAnalogics[j].unit;
+		}
+		stateInputs[i].time_value.minutes= hdRTC.min;
+		stateInputs[i].time_value.seconds= hdRTC.sec;
+
+		reg_status= (uint8_t) AINP_GET_ALL(ainStatus, i);
+		stateInputs[i].satuts= reg_status;
+
+		// Solo grabo en el registro cuando la entrada varia su valor:
+		// FIXME puedo agregarle una condiion extra, verificando si quiero historizar esta variable
+		//if( AINP_GET_VAR(reg_status, i) )
+		{
+			//data_record.gpio= stateInputs[i].id_gpio; // No importa este valor
+
+			data_record.sTime.minutes= hdRTC.min;
+			data_record.sTime.seconds= hdRTC.sec;
+			//data_record.data.secTime=0; // Este valor se encuentra en historyRegister.
+
+			data_record.data.name= regAnalogics[j].name;
+			data_record.data.value= regAnalogics[j].value;
+
+			retval= historyRegister( &data_record );
+		}
+	}
+	return retval;
+}
+
+// solo para debug
+uint8_t sizeTypes[6];
+void _calcSizeTypes (uint8_t * retval)
+{
+	retval[0]= sizeof(TypeLog_t);
+	retval[1]= sizeof(TypePort_t);
+	retval[2]= sizeof(shTime_t);
+	retval[3]= sizeof(perif_t);
+	retval[4]= sizeof(dInOutQueue_t);
+	retval[5]= sizeof(unit_t);
+}
+
+//**************************************************************************************************
 void taskControlOutputs (void * a)
 {
 	static terMsg_t msgToSend= { .mode= MP_DEF, .msg=buffSendTerminal, .size=SIZE_BUFF_TERM };
@@ -64,19 +324,20 @@ void taskControlOutputs (void * a)
 	{
 		if( pdTRUE == xQueueReceive( MGR_OUTPUT_QUEUE, &dataRecLed, TIMEOUT_QUEUE_INPUT ))
 		{
-			if( outputLed == GET_TYPE(dataRecLed.gpio) )
+			if( outputLed == GET_TYPE(dataRecLed.mode) )
 			{
-				ciaaLED_Set( GET_ID(dataRecLed.gpio), dataRecLed.data.value );
+				ciaaLED_Set( dataRecLed.gpio, dataRecLed.data.value );
 
 				sprintf( buffSendTerminal, "[LED_%d= %i uni]\r\n", GET_ID(dataRecLed.gpio), dataRecLed.data.value );
 				Terminal_Msg_Def( &msgToSend, buffSendTerminal );
 				xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 			}
-
-			if( historyInputReg( &dataRecLed.data ))
+/*
+			if( historyDigInput( &dataRecLed ) )
 			{
 				xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 			}
+*/
 		}
 		else
 		{
@@ -87,6 +348,8 @@ void taskControlOutputs (void * a)
 		}
 
 		ACTUALIZAR_STACK( MGR_OUTPUT_HANDLER, MGR_OUTPUT_ID_STACK );
+		vTaskDelay( MGR_OUTPUT_DELAY );
+
 	}
 }
 
@@ -94,7 +357,11 @@ void taskControlInputs (void * a)
 {
 	static dOutputQueue_t dataToSend;
 	//static terMsg_t msgToSend;
-	dInputQueue_t dataRecKey;
+	dInOutQueue_t dataRecKey;
+	repAnStat_t reportAnalogInputs[ADC_INPUTS];
+	uint16_t retAnalogUpdate;
+
+	_calcSizeTypes( sizeTypes );
 
 	ciaaTEC_Init();
 	ciaaAIN_Init();
@@ -105,32 +372,32 @@ void taskControlInputs (void * a)
 	{
 		if( pdTRUE == xQueueReceive( MGR_INPUT_QUEUE, &dataRecKey, TIMEOUT_QUEUE_INPUT ))
 		{
-			if( inputTecl == GET_TYPE(dataRecKey.gpio) && TECL_PUSH == dataRecKey.data.value)
+			if( inputTecl == GET_TYPE(dataRecKey.mode) )
 			{
-				dataToSend.gpio= outputLed;
+				dataToSend.mode= outputLed;
 				dataToSend.data.value= TRUE;
 			// Si presionan la tecla 1 entonces enciendo el led 1.
-				if( TECL1 == GET_ID(dataRecKey.gpio) )
+				if( TECL1 == dataRecKey.gpio && TECL_PUSH == dataRecKey.data.value )
 				{
-					dataToSend.gpio |= LED_B;
+					dataToSend.gpio = LED_B;
 					xQueueSend( MGR_OUTPUT_QUEUE, &dataToSend, TIMEOUT_QUEUE_OUTPUT );
 				}
 				// Si presionan la tecla 2 entonces se envia un mensaje con el valor de la entrada analogica.
-				if( TECL2 == dataRecKey.gpio )
+				if( TECL2 == dataRecKey.gpio && TECL_PUSH == dataRecKey.data.value )
 				{
-					dataToSend.gpio |= LED_1;
+					dataToSend.gpio = LED_1;
 					xQueueSend( MGR_OUTPUT_QUEUE, &dataToSend, TIMEOUT_QUEUE_OUTPUT );
 				}
 				// Si se completa el registro de RAM se envia a la eeprom:
-				if( historyInputReg( &dataRecKey.data ))
+				if( RET_VAL_BUFF_FULL & historyDigInput( &dataRecKey ) )
 				{
 					xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 				}
 			}
 
-			if( inputConfig == GET_TYPE(dataRecKey.gpio) )
+			if( inputConfig == GET_TYPE(dataRecKey.mode) )
 			{
-				uint8_t id= GET_ID(dataRecKey.gpio);
+				uint8_t id= dataRecKey.gpio;
 
 				if( AINP_VALID(id) )
 				{
@@ -144,14 +411,19 @@ void taskControlInputs (void * a)
 
 			}
 		}
-		else // FIXME EN VEZ DE ESTO TENGO QUE USAR TIMERS DE FREERTOS O DEL SISTEMA.
+		else // FIXME ESTO TENGO QUE USAR TIMERS DE FREERTOS O DEL SISTEMA. no es constante para nada!!!!
 		{
 			/*
 			sprintf( buffSendTerminal, "[AI_%d= %i uni]\r\n", AIN_1, ADC_read(AIN_1) );
 			Terminal_Msg_Def( &msgToSend, buffSendTerminal );
 			xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 			 */
-			ciaaAIN_Update();
+			retAnalogUpdate= ciaaAIN_Update( &reportAnalogInputs[0] );
+			// Si se completa el registro de RAM se envia a la eeprom:
+			if( RET_VAL_BUFF_FULL & historyAnInput( reportAnalogInputs, retAnalogUpdate ))
+			{
+				xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
+			}
 		}
 		// FIXME EN VEZ DE ESTE SISTEMA TENGO QUE USAR DEBOUNCE CON TIMERS PARA LOS DEMAS ENTRADAS BINARIAS. O USO TODAS LAS IRQ.
 		// TODO UNA VEZ RECOGIDOS LOS DATOS, ESTOS SE GRABARAN EN UNA TABLA GENERAL. AHI ESTARAN LAS ACCIONES CORRESPONDIENTES
@@ -167,15 +439,14 @@ void taskControlInputs (void * a)
 /*==================[irq handlers functions ]=========================*/
 void GPIO0_IRQHandler (void)
 {
-	static dInputQueue_t dataToSend;
+	static dInOutQueue_t dataToSend= {.mode=inputTecl, .gpio=TECL1};
 	portBASE_TYPE xSwitchRequired;
 
+	dataToSend.data.name= SW_START_STOP; // FIXME esta correspondencia no puede ser forzada, debe salir de la tabla.
 	dataToSend.data.value= TECL_FREE;
 
 	if( TEC1_PRESSED & ciaaTEC_Level_ISR( TECL1 ) )
 	{
-		dataToSend.gpio = inputTecl;
-		dataToSend.gpio|= TECL1;
 		dataToSend.data.value= TECL_PUSH;
 	}
 	xQueueSendFromISR( MGR_INPUT_QUEUE, &dataToSend, &xSwitchRequired );
@@ -185,15 +456,14 @@ void GPIO0_IRQHandler (void)
 
 void GPIO1_IRQHandler (void)
 {
-	static dInputQueue_t dataToSend;
+	static dInOutQueue_t dataToSend= {.mode=inputTecl, .gpio=TECL2};
 	portBASE_TYPE xSwitchRequired;
 
+	dataToSend.data.name= SW_INTERRUPT; // FIXME esta correspondencia no puede ser forzada, debe salir de la tabla.
 	dataToSend.data.value= TECL_FREE;
 
 	if( TEC2_PRESSED & ciaaTEC_Level_ISR( TECL2 ) )
 	{
-		dataToSend.gpio = inputTecl;
-		dataToSend.gpio|= TECL2;
 		dataToSend.data.value= TECL_PUSH;
 	}
 	xQueueSendFromISR( MGR_INPUT_QUEUE, &dataToSend, &xSwitchRequired );

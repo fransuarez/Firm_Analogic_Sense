@@ -8,8 +8,8 @@
 #ifndef MODULES_SUPPORT_SENSADOANALOGICO_
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
-#define REG_OPR_LOG	30	// Numero de registros por operacion de lgo.
-#define TYPE_OFFSET 5
+#define REG_OPR_LOG	32	// Numero de registros por operacion de log. Equivale a una pagina de memoria con 32 words.
+#define TYPE_OFFSET 5	//(1<<5)
 #define MASK_OFFSET 0x1F
 
 #define GET_ID(X)	( MASK_OFFSET & X )
@@ -28,7 +28,8 @@ typedef enum _type_log
 	readByte,
 	readWord,
 	readPage
-} TypeLog_t;
+
+} TypeLog_t;  //size= 1 byte
 
 typedef enum _type_port
 {
@@ -41,7 +42,7 @@ typedef enum _type_port
 	outputLed	=(6<<TYPE_OFFSET),
 	outputConfig=(7<<TYPE_OFFSET)
 
-} TypePort_t;
+} TypePort_t; //size= 1 byte
 
 typedef enum _modos_configuracion
 {
@@ -52,6 +53,13 @@ typedef enum _modos_configuracion
 
 } modoCfg_t;
 
+typedef struct reg_sample_time
+{
+	uint8_t 	minutes;
+	uint8_t		seconds;
+
+} shTime_t; //size= 2 bytes
+
 typedef struct _msg_type_aligned
 {
 	uint16_t 	size;
@@ -60,14 +68,6 @@ typedef struct _msg_type_aligned
 	//TickType_t ticktimes;
 } genStr_t;
 
-// Tamaño del registro 4 Bytes o 1 Word.
-typedef struct _register_gpio
-{
-	uint16_t	offsetSec;
-	uint16_t 	value; 	// Esto despues se puede optimizar y dejar solo 4 char/bytes que representen un uint32
-
-} GpioReg_t;
-
 typedef struct _configurer_gpio
 {
 	uint16_t 	auxvalue1;
@@ -75,35 +75,42 @@ typedef struct _configurer_gpio
 
 } GpioConf_t;
 
+#define SIZE_BYTES_GPIO_REG		4
+// Tamaño del registro 4 Bytes o 1 Word.
+typedef struct _register_gpio
+{
+	uint8_t 	name;
+	uint8_t		secTime;
+	uint16_t 	value; 	// Esto despues se puede optimizar y dejar solo 4 char/bytes que representen un uint32
+
+} GpioReg_t;
+
 typedef struct _data_log_pack
 {
 	uint8_t	 	cmd;
 	uint8_t		nReg;
-	uint8_t		minutes;
-	uint8_t		seconds;
+	uint8_t		hourSamples;
+	uint8_t		minuSamples;
 	GpioReg_t* 	data;
 	//TickType_t ticktimes;
 } dlogPack_t;
 
 typedef struct _data_input_queue
 {
-	uint8_t		mode;
-	uint8_t 	gpio;
+	uint8_t		mode; // es del tipo TypePort_t -> ver que tamaño tiene en bytes sino lo fuerzo a uint8_t
+	uint8_t		gpio; // es del tipo perif_t pero como esta definidio en otro modulo lo fuerzo a uint8_t.
+	shTime_t	sTime;
 	union
 	{
-		GpioConf_t  conf;
 		GpioReg_t  	data;
+		GpioConf_t  conf;
 	};
 
-} dInputQueue_t;
+} dInOutQueue_t; //size= 8 bytes
 
-typedef struct _data_output_queue
-{
-	uint8_t		mode;
-	uint8_t 	gpio;
-	GpioReg_t  	data;
+typedef dInOutQueue_t dOutputQueue_t;
+typedef dInOutQueue_t dInputQueue_t;
 
-} dOutputQueue_t;
 
 /*
 

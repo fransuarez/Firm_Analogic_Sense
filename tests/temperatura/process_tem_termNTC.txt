@@ -1,4 +1,5 @@
  Calculo de Temperartura y Resistencia a partir del modelo BETA:
+ 
   R_med				 T_cal			 R_cal			 R_error
 -----------------------------------------------------------
   13000 Omhs		+13.45 °C	  13000 Ohms		0.00%

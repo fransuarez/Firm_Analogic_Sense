@@ -5,10 +5,12 @@
  *      Author: fran
  */
 
+#include "binaryFiles.h"
+#include "api_EEPROM.h"
+
 #include "services_config.h"
 #include "terminalManager.h"
-#include "api_RTC.h"
-#include "api_EEPROM.h"
+
 
 extern xTaskHandle 			MGR_DATALOG_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
@@ -17,87 +19,24 @@ extern xQueueHandle 		MGR_DATALOG_QUEUE;
 extern xQueueHandle 		MGR_TERMINAL_QUEUE;
 extern xSemaphoreHandle 	MGR_INPUT_MUTEX;
 
-#define LOG_MAX_REGISTER	30
+#define LOG_MAX_REGISTER	REG_OPR_LOG
 
-static RTC_t RTC =
-{
-	.mday = 14,
-	.month= 9,
-	.year = 2018,
-	.wday = 5,
-	.hour = 12,
-	.min  = 0,
-	.sec  = 0
-};
 
-typedef struct _data_page
-{
-	char 		time[8]; 				// Longitud de "HH:MM:SS". Tamaño total 8 bytes o 2 words.
-	GpioReg_t* 	regMem;  	// Cantidad de registros almacenadaos. Tamaño total REG_OPR_LOG*4 Bytes=120 Bytes o 30 Words.
+//**********************************************************************************************
 
-} DataP_t; 								// El tamaño de la estructura es de 128 bytes o 32 words.
 
-typedef struct _control_eeprom
-{
-	uint32_t nextReg; 	// Longitud de "HH:MM:SS"
-	uint32_t numReg;
-
-} CtrlE2P_t;
-
-static CtrlE2P_t regEeprom;
-static DataP_t readEeprom;
-static DataP_t sendEeprom;
-//static char sToSend[]= "[LOG send to EEPROM]/n/r";
-
-static void dataLog_RTC_Update (char * regRTC)
-{
-	RTC_getTime(&RTC);
-	sprintf( regRTC, "%2d:%2d:%2d", RTC.hour, RTC.min, RTC.sec );
-}
-
-static int dataLog_Store_Page (uint16_t numReg)
-{
-	uint32_t sizebloq;
-	uint32_t retval=0;
-
-	dataLog_RTC_Update( sendEeprom.time );
-
-	sizebloq= numReg*sizeof(GpioReg_t)+strlen(sendEeprom.time);
-
-	if( LOG_MAX_REGISTER == numReg && EEPROM_PAGE_SIZE == sizebloq )
-	{
-		EEPROM_writeWord( regEeprom.nextReg, (uint32_t) sendEeprom.time[0] );
-		EEPROM_writeWord( regEeprom.nextReg, (uint32_t) sendEeprom.time[4] );
-
-		regEeprom.nextReg += 0x0008;
-		if( EEPROM_writePage( regEeprom.nextReg, (uint8_t *) sendEeprom.regMem ) )
-		{
-			if( EEPROM_ADDRESS_HIGH > regEeprom.nextReg )
-			{
-				regEeprom.nextReg += EEPROM_PAGE_SIZE;
-				regEeprom.numReg++;
-			}
-			else
-			{
-				regEeprom.nextReg=0;
-				regEeprom.numReg=EEPROM_PAGE_NUM-1; // Fixme Por ahora si llego al maximo lo dejo con el contador al maximo.
-			}
-			retval=1;
-		}
-
-	}
-	return retval;
-}
-
+//**********************************************************************************************
 void dataLog_Service (void * a)
 {
 	dlogPack_t dataRecived;
+	dlogMem_t  dataLogin;
+	static uint32_t count_fail=0;
+
 	//static terMsg_t msgToSend;
-	EEPROM_init( EEPROM_AUTOPROG_AFT_LASTWORDWRITTEN ); // Modo: EEPROM_AUTOP_1WORDWRITTEN sirve mas para escribir de a words/bytes
-	RTC_Init();
-	RTC_setTime( &RTC );
-	regEeprom.numReg=0;
-	regEeprom.nextReg=0x0000;
+	if( !dataLog_Init() )
+	{
+		while(1);
+	}
 
 	while (1)
 	{
@@ -108,8 +47,23 @@ void dataLog_Service (void * a)
 				case writePage:
 					if( TOMAR_SEMAFORO(	MGR_INPUT_MUTEX, TIMEOUT_MUTEX_INPUT) )
 					{
-						sendEeprom.regMem= dataRecived.data;
-						dataLog_Store_Page( dataRecived.nReg );
+						dataLogin.hourReg= dataRecived.hourSamples;
+						dataLogin.minuReg= dataRecived.minuSamples;
+						dataLogin.sizeReg= dataRecived.nReg*SIZE_BYTES_GPIO_REG;
+						dataLogin.dataReg= (uint8_t*) dataRecived.data;
+						// FIXME falta agregar la conversion de tiempo a la escala de tiempo, No usar esta porque la conversion
+						// 		 ya la hice antes en cada registro. Aca deberia implementar la desconversion.
+						if( !dataLog_Page_Store( &dataLogin ) )
+						{
+							//if(LIBERAR_SEMAFORO( MGR_INPUT_MUTEX )){}
+							count_fail++;
+						}
+
+						if(LIBERAR_SEMAFORO( MGR_INPUT_MUTEX ))
+						{
+							count_fail++;
+						}
+
 						//Terminal_Msg_Def( &msgToSend, sToSend );
 						//xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 					}

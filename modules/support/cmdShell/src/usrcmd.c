@@ -65,11 +65,7 @@ static const cmd_table_t cmdlist[] = {
 	{ "stat", "Muestra el estado general del sistema"				, cmd_statSystem 		},
 };
 
-int usrcmd_execute(const char *text)
-{
-    return ntopt_parse(text, usrcmd_ntopt_callback, 0);
-}
-
+/************************************************************/
 /**** Callback function for ntopt module ****/
 static int usrcmd_ntopt_callback(int argc, char **argv, void *extobj)
 {
@@ -143,9 +139,6 @@ static int usrcmd_info(int argc, char **argv)
     return -1;
 }
 
-
-/************************************************************/
-
 static int cmd_statSystem 	( int argc, char **argv )
 {
 	//printEstado= true;
@@ -162,5 +155,12 @@ static int checkandSet(char * val, int min, int max)
 			retval= auxval;
 
 	return retval;
+}
+
+/************************************************************/
+
+int usrcmd_execute(const char *text)
+{
+    return ntopt_parse(text, usrcmd_ntopt_callback, 0);
 }
 

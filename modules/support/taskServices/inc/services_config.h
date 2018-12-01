@@ -32,16 +32,18 @@
 // ------------------------------------------------------------------------------------
 #define  NUM_TASK				4
 #define  STACKS_TAREAS			ptrstack
-
+//#define  CPU_TAREAS				ptrCpu
 // Macros : ----------------------------------------------------------------------------
 #define  ACTUALIZAR_STACK(X,Y)  (*(STACKS_TAREAS+Y)= uxTaskGetStackHighWaterMark(X))
+//#define  UPDATE_CPU_HIST(X)   	(*(CPU_TAREAS+X))++
+
 #define  LIBERAR_TAREA			(taskYIELD())
 #define  TOMAR_SEMAFORO(X,Y)	( pdTRUE == xSemaphoreTake(X,Y))
 #define  LIBERAR_SEMAFORO(X)	( pdTRUE == xSemaphoreGive(X) )
 
 // -------------------- Definiciones tarea 1  ---------------------
 #define  TASK_N1				taskControlOutputs
-#define  TASK_N1_DECRIPT		"Tarea de control de salidas por cola."
+#define  TASK_N1_DECRIPT		"DIGITAL Outputs Driver Task."
 // Con esta cantidad de stack le quedan libres 101 Bytes. Le sobran < 1*STACK_SIZE= 128
 #define  TASK_N1_STACK			(configMINIMAL_STACK_SIZE*2)
 #define  TASK_N1_PRIORITY		tskIDLE_PRIORITY+2
@@ -58,10 +60,10 @@
 
 // -------------------- Definiciones tarea 2  ---------------------
 #define  TASK_N2				taskControlInputs
-#define  TASK_N2_DECRIPT		"Tarea relevadora de entradas por interrupcion."
+#define  TASK_N2_DECRIPT		"DIG/AN Inputs Driver Task."
 // Con esta cantidad de stack le quedan libres 79 Bytes. Le sobran < 1*STACK_SIZE =128
 #define  TASK_N2_STACK			(configMINIMAL_STACK_SIZE*2)
-#define  TASK_N2_PRIORITY		tskIDLE_PRIORITY+1
+#define  TASK_N2_PRIORITY		tskIDLE_PRIORITY+2
 #define  TASK_N2_HANDLER		pxCreatedTask2
 #define  TASK_N2_ID_STACK		1
 
@@ -76,7 +78,7 @@
 
 // -------------------- Definiciones tarea 3  ---------------------
 #define  TASK_N3				taskTerminal
-#define  TASK_N3_DECRIPT		"Tarea control de comunicacion con terminal."
+#define  TASK_N3_DECRIPT		"Terminal Shell Task."
 // Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
 #define  TASK_N3_STACK			(configMINIMAL_STACK_SIZE*4)
 #define  TASK_N3_PRIORITY		tskIDLE_PRIORITY+1
@@ -94,7 +96,7 @@
 
 // -------------------- Definiciones tarea 4  ---------------------
 #define  TASK_N4				dataLog_Service
-#define  TASK_N4_DECRIPT		"Tarea control de guardado de registros en eeprom."
+#define  TASK_N4_DECRIPT		"Logs Eeprom Driver Task."
 // Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
 #define  TASK_N4_STACK			(configMINIMAL_STACK_SIZE*2)
 #define  TASK_N4_PRIORITY		tskIDLE_PRIORITY+1
