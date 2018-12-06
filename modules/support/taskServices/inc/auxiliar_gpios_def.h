@@ -9,11 +9,8 @@
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
 #define REG_OPR_LOG	32	// Numero de registros por operacion de log. Equivale a una pagina de memoria con 32 words.
-#define TYPE_OFFSET 5	//(1<<5)
-#define MASK_OFFSET 0x1F
 
-#define GET_ID(X)	( MASK_OFFSET & X )
-#define GET_TYPE(X)	( ~MASK_OFFSET & X )
+
 /*==================[typedef]================================================*/
 typedef uint8_t		statPin_t;
 typedef uint8_t		type_t;
@@ -33,14 +30,17 @@ typedef enum _type_log
 
 typedef enum _type_port
 {
-	inputConfig =(0<<TYPE_OFFSET),
-	inputDigital=(1<<TYPE_OFFSET),
-	inputAnalog =(2<<TYPE_OFFSET),
-	inputTecl	=(3<<TYPE_OFFSET),
-	outputDigital=(4<<TYPE_OFFSET),
-	outputAnalog=(5<<TYPE_OFFSET),
-	outputLed	=(6<<TYPE_OFFSET),
-	outputConfig=(7<<TYPE_OFFSET)
+	inputConfig =0,
+	inputDigital,
+	inputAnalog ,
+	inputTecl	,
+	inputMonitor,
+	outputDigital,
+	outputAnalog,
+	outputLed	,
+	outputConfig,
+	outputMonitor
+
 
 } TypePort_t; //size= 1 byte
 
@@ -87,10 +87,10 @@ typedef struct _register_gpio
 
 typedef struct _data_log_pack
 {
-	uint8_t	 	cmd;
-	uint8_t		nReg;
-	uint8_t		hourSamples;
-	uint8_t		minuSamples;
+	uint16_t	cmd;
+	uint16_t	nReg;
+	uint16_t	auxVal_1;
+	uint16_t	auxVal_2;
 	GpioReg_t* 	data;
 	//TickType_t ticktimes;
 } dlogPack_t;

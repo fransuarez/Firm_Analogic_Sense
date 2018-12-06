@@ -13,6 +13,7 @@
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
+#include "timers.h"
 
 #include "auxiliar_gpios_def.h"
 
@@ -26,7 +27,7 @@
 #define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t ) 2000	) // antes tenia portMAX_DELAY
 #define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t ) 2		)
 #define  TIMEOUT_QUEUE_MSG_OUT 	(( TickType_t ) 500		)
-#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t ) 2		)
+#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t ) 800	)
 #define  TIMEOUT_QUEUE_LOG_OUT 	(( TickType_t ) 500		)
 
 // ------------------------------------------------------------------------------------
@@ -106,11 +107,23 @@
 #define  MGR_DATALOG_ID_STACK	TASK_N4_ID_STACK
 #define  MGR_DATALOG_HANDLER 	TASK_N4_HANDLER
 #define  MGR_DATALOG_DELAY 		((TickType_t) 10)
+#define  MGR_DATALOG_PRINT_REG 	((TickType_t) 1000)
+#define  MGR_DATALOG_MUTEX		mutexBuffRedLog
+
 
 #define  MGR_DATALOG_QUEUE		queueDataLog
 #define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t )
 #define  MGR_DATALOG_QUEUE_LENGT 2
 // ------------------------------------------------------------------------------------
+#define  TIMER_1_OBJ			timerInput1
+#define  TIMER_2_OBJ			timerInput2
+#define  TIMER_3_OBJ			timerInput3
+
+#define  TIMER_1_NAME			"Envio Reportes Timer"
+#define  TIMER_1_PER			( 1000 / portTICK_PERIOD_MS )
+#define  TIMER_1_IDn			(void *) 1
+#define  TIMER_1_CALLBACK		timerMonitCallback
+
 
 // ------------------------------------------------------------------------------------
 int tasks_create (void );

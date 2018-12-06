@@ -6,23 +6,64 @@
  */
 
 #include "terminalManager.h"
+#include "services_config.h"
 
 #include "usrcmd.h"
 #include "ntshell.h"
 #include "api_UART.h"
 
 //Definicion del RTOS a usar --------------------------------------------------
-#ifdef  USE_RTOS
-#include "services_config.h"
-#endif
 
 #define L_FIFO_UART 		300
 #define AUX_ARGC			32
 #define TOKENS				" ."
+//**** VT100 Defines ********************************************************
+#define PROMT_COL_DEF		0
+#define PROMT_FIL_DEF		20
+#define MSG_COL_DEF			0
+#define MSG_FIL_DEF			0
 
-extern xTaskHandle 			MGR_TERMINAL_HANDLER;
-extern xSemaphoreHandle 	MGR_TERMINAL_MUTEX;
-extern xQueueHandle 		MGR_TERMINAL_QUEUE;
+#define WINDOWS_COL_MAX		80
+#define WINDOWS_FIL_MAX		26
+
+
+#define SET_POSITION(C,L)	( vtsend_cursor_position( &nts.vtsend, C, L ) ) //( vt_SetPosition( C, L ) )
+#define SET_NEW_LINE(X)		( {vtsend_cursor_down( &nts.vtsend, X ); vtsend_cursor_backward( &nts.vtsend, WINDOWS_COL_MAX)} ) //( vt_SetNewLine(X) )
+
+#define PROMT_POS_INIT()	( SET_POSITION( PROMT_COL_DEF, PROMT_FIL_DEF ) ) //( vt_SetPosition( PROMT_COL_DEF, PROMT_FIL_DEF ) )
+#define PROMT_POS_INIT_COL() ( vtsend_cursor_backward( &nts.vtsend, WINDOWS_COL_MAX) ) //( vt_PromtPosInit() )
+#define PROMT_POS_SALVE()	 ( vtsend_cursor_position_save( &nts.vtsend ) ) 	//( vt_PromtPosSalve() )
+#define PROMT_POS_RESTORE()	 ( vtsend_cursor_position_restore( &nts.vtsend ) ) //( vt_PromtPosRestore() )
+
+#define PROMT_POS_UP_FIL(X) ( (WINDOWS_FIL_MAX<X)? 1: 0 )
+#define PROMT_POS_UP_COL(X) ( (WINDOWS_COL_MAX<X)? 1: 0 )
+
+#define MSG_POS_INIT()		( SET_POSITION( MSG_COL_DEF, MSG_FIL_DEF ) ) //( vt_SetPosition( MSG_COL_DEF, MSG_FIL_DEF ) )
+#define MSG_POS_UP_FIL(X)	( (PROMT_FIL_DEF<X)? 1: 0 )
+
+//**************************************
+//#define SET_POSITION(C,L)	( 1 )
+//#define SET_NEW_LINE(X)		( 1 )
+
+//#define PROMT_POS_INIT()	( 1 )
+//#define PROMT_POS_INIT_COL() ( 1 )
+//#define PROMT_POS_SALVE()	( 1 )
+//#define PROMT_POS_RESTORE()	( 1 )
+
+//#define PROMT_POS_UP_FIL(X) ( 1 )
+//#define PROMT_POS_UP_COL(X) ( 1 )
+
+//#define MSG_POS_INIT()	( 1 )
+//#define MSG_POS_UP_FIL(X)	( 1 )
+
+//***************** ********************************************************
+
+extern TaskHandle_t			MGR_TERMINAL_HANDLER;
+extern SemaphoreHandle_t 	MGR_TERMINAL_MUTEX;
+extern QueueHandle_t 		MGR_TERMINAL_QUEUE;
+extern QueueHandle_t 		MGR_DATALOG_QUEUE;
+extern QueueHandle_t 		MGR_INPUT_QUEUE;
+extern QueueHandle_t 		MGR_OUTPUT_QUEUE;
 
 extern UBaseType_t*			STACKS_TAREAS;
 /***********************************************************************************/
@@ -45,56 +86,115 @@ typedef enum modeinput
 } modein_t;
 
 /***********************************************************************************/
-static modein_t				inputDatos= CONSOLA;
-static char 				buffInpProg[L_FIFO_UART];
-static char * 				auxargv [AUX_ARGC];
-static int 					auxargc;
-static int					nOverFullCS;
+static modein_t		inputDatos= CONSOLA;
+static char 		buffInpProg[L_FIFO_UART];
+
+static char * 		auxargv [AUX_ARGC];
+static int 			auxargc;
+static int			nOverFullCS;
+
+static dlogPack_t 	dataToLog;
+static ntshell_t 	nts;
 
 /* Funciones privadas ***************************************************/
 static int  readTerminal	 ( char *, int , void * );
 static int  writeTerminal	 ( const char *, int , void * );
 static int  callParserShell	 ( const char *, void * );
 static int  sendCommandShell ( char * );
-static void printTerminal 	 ( terMsg_t * objMsg );
-
+static int  printTerminal 	 ( terMsg_t * objMsg );
 
 /* Funciones publicas **************************************************/
 
 void taskTerminal (void * parametrosTarea)
 {
-    void *extobj = NULL;
 	terMsg_t msgRecived;
-    ntshell_t nts;
+    cmd_data_t pDataInp;
+	dInOutQueue_t dataGpio;
+
 
     UART_Init();
-    sendStr_DEBUG(MSG_BIENVENIDA);
-    ntshell_init(&nts, readTerminal, writeTerminal, callParserShell, extobj);
+    ntshell_init(&nts, readTerminal, writeTerminal, callParserShell, NULL);
     ntshell_set_prompt(&nts, MSG_PROMPT);
+
+    SET_POSITION(PROMT_COL_DEF, PROMT_FIL_DEF-1);
+    sendStr_DEBUG(MSG_BIENVENIDA);
     sendStr_DEBUG(nts.prompt);
+	PROMT_POS_SALVE();
 
 	while(1)
 	{
-		ntshell_execute(&nts);
+		if( pdTRUE == xQueueReceive( MGR_TERMINAL_QUEUE, &msgRecived, TIMEOUT_QUEUE_MSG_INP ))
+		{
+			switch( msgRecived.mode )
+			{
+				case MP_CMD:
+					if( sendCommandShell( msgRecived.msg ) )
+					{
+						callParserShell ((const char *) auxargv[0], (void *) &auxargc);
+					}
+					break;
+				case MP_PRINT_NORMAL:
+				case MP_PRINT_DEBUG:
+				case MP_PRINT_CONTINUE:
+					if( printTerminal( &msgRecived ))
+					{
+					}
+					break;
 
+				case MP_BLOCK:
+					inputDatos= PROCESANDO;
+					break;
+
+				case MP_RELEASE:
+				default:
+					inputDatos= CONSOLA;
+					break;
+			}
+		}
+
+		//if( CONSOLA == inputDatos )
+		{
+			ntshell_execute(&nts);
+
+			if( usrcmd_getStatus( &pDataInp ))
+			{
+				switch( pDataInp.destino ) {
+					case CMD_TASK_N1:
+						dataToLog.cmd= readPage;
+						dataToLog.nReg= pDataInp.arg1;
+						dataToLog.auxVal_1= pDataInp.arg2;
+						dataToLog.auxVal_2= pDataInp.arg3;
+						xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
+						break;
+					case CMD_TASK_N2:
+						//if( 0xFFFF == pDataInp.arg1 )
+						{
+							dataGpio.mode= inputMonitor;
+							dataGpio.gpio= pDataInp.arg1;
+						}
+						xQueueSend( MGR_INPUT_QUEUE, &dataGpio, TIMEOUT_QUEUE_INPUT );
+						break;
+					default:
+						break;
+				}
+				usrcmd_setStatus();
+			}
+		}
+/*
 		if( INTERNO == inputDatos )
 		{
 			callParserShell ((const char *) auxargv[0], (void *) &auxargc);
 			inputDatos= CONSOLA;
 		}
 
-		if( pdTRUE == xQueueReceive( MGR_TERMINAL_QUEUE, &msgRecived, TIMEOUT_QUEUE_MSG_INP ))
+		if( PROCESANDO == inputDatos )
 		{
-			if( MP_CMD == msgRecived.mode )
+			if( 'c'== UART_RecvChar() )
 			{
-				sendCommandShell( msgRecived.msg );
-			}
-			else
-			{
-				printTerminal( &msgRecived );
+				xQueueSend( MGR_INPUT_QUEUE, &dataGpio, TIMEOUT_QUEUE_INPUT );
 			}
 		}
-
+*/
 		ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
 		vTaskDelay( MGR_TERMINAL_DELAY );
 	}
@@ -104,38 +204,70 @@ void taskTerminal (void * parametrosTarea)
  * Funcion que envia un string a la terminal de debuging.
  * Al usar RTOS la misma debe de tener acceso sobre el recurso.
  */
-static void printTerminal( terMsg_t * objMsg )
+static int printTerminal( terMsg_t * objMsg )
 {
-#ifdef USE_RTOS
+	int retval=0;
+	static int col=MSG_COL_DEF;
+	static int fil=MSG_FIL_DEF;
+	uint16_t byteRest= objMsg->size;
+
 	if( TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA) )
 	{
-#endif
+		PROMT_POS_SALVE();
+		SET_POSITION(col, fil);
 
-	switch (objMsg->mode) {
-	    case MP_DEB:
-	    	sendStr_DEBUG( MSG_MODO_DEBUG );
-	    	break;
-	    case MP_EST:
-	    	sendStr_DEBUG( MSG_MODO_STANDARD );
-	    	break;
-	    case MP_SIN_NL:
-	    	sendStr_DEBUG( MSG_MODO_CONTINUO );
-	    	break;
-	    case MP_DEF:
-	    default:
-	    	sendStr_DEBUG( MSG_MODO_DEFAULT );
+		switch (objMsg->mode)
+		{
+		case MP_PRINT_DEBUG:
+			sendStr_DEBUG( MSG_MODO_DEBUG );
+			col+=2;
+			break;
+		case MP_PRINT_CONTINUE:
+			sendStr_DEBUG( MSG_MODO_CONTINUO );
+			col+=1;
+			break;
+		case MP_PRINT_NORMAL:
+		default:
+			sendStr_DEBUG( MSG_MODO_STANDARD );
+			col+=1;
+		}
+
+		do
+		{
+			if( (WINDOWS_COL_MAX-col) < byteRest )
+			{
+				if( !sendBuf_DEBUG( objMsg->msg, WINDOWS_COL_MAX ))
+				{
+					nOverFullCS++;
+				}
+				byteRest-= WINDOWS_COL_MAX;
+				//MSG_NEW_LINE();
+			}
+			else
+			{
+				if( !sendStr_DEBUG( objMsg->msg ))
+				{
+					nOverFullCS++;
+				}
+			}
+			if( MSG_POS_UP_FIL(++fil) )
+			{
+				// FIXME aca debe ir la rutina que limpia esta parte de la pantalla.
+				fil=MSG_FIL_DEF;
+			}
+			col=MSG_COL_DEF;
+			SET_POSITION( col, fil );
+		}
+		while( WINDOWS_COL_MAX < byteRest );
+
+		if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
+		{
+		}
+		retval= 1;
+
+		//PROMT_POS_RESTORE();
 	}
-	if( !sendStr_DEBUG( objMsg->msg ))
-	{
-		nOverFullCS++;
-	}
-#ifdef USE_RTOS
-	if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
-	{
-		nOverFullCS++;
-	}
-	}
-#endif
+	return retval;
 }
 
 /************************************************************************/
@@ -147,26 +279,54 @@ static void printTerminal( terMsg_t * objMsg )
  */
 static int writeTerminal(const char *buf, int cnt, void *extobj)
 {
+	static int nColPromt= PROMT_COL_DEF;
+	static int nFilPromt= PROMT_FIL_DEF;
 	int i = 0;
-#ifdef USE_RTOS
+
 	if( TOMAR_SEMAFORO(	MGR_TERMINAL_MUTEX, TIMEOUT_MUTEX_CONSOLA) )
 	{
-#endif
+		PROMT_POS_RESTORE();
 
-    for (; i < cnt; i++)
-    {
-    	sendChr_DEBUG( buf[i] );
-    }
+		for (; i < cnt; i++)
+		{
+			sendChr_DEBUG( buf[i] );
+			if( '\n' == buf[i] )
+			{
+				if( PROMT_POS_UP_FIL( ++nFilPromt ) )
+				{
+					nFilPromt= PROMT_FIL_DEF;
+					nColPromt= PROMT_COL_DEF;
+					PROMT_POS_INIT();
+				}
+			}
+			else
+			{
+				if( PROMT_POS_UP_COL( ++nColPromt ) )
+				{
+					//PROMT_POS_INIT_COL();
+					nColPromt= PROMT_COL_DEF;
+					if( PROMT_POS_UP_FIL( ++nFilPromt ) )
+					{
+						nFilPromt= PROMT_FIL_DEF;
+						nColPromt= PROMT_COL_DEF;
+						PROMT_POS_INIT();
+					}
+					else
+					{
+						SET_POSITION( nColPromt, nFilPromt );
+					}
+				}
+			}
+		}
+		PROMT_POS_SALVE();
 
-#ifdef USE_RTOS
-	if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
-	{
-		i++;
+		if( LIBERAR_SEMAFORO( MGR_TERMINAL_MUTEX ) )
+		{
+			//i++;
+		}
 	}
-	}
-#endif
 
-    return cnt;
+	return cnt;
 }
 
 /**** Serial read function ****
@@ -199,32 +359,62 @@ static int callParserShell(const char *text, void *extobj)
  */
 static int sendCommandShell (char * string)
 {
+	int retval=0;
 	char * nextWord;
 	int i=0;
 
-	if (string == NULL) return 0;
-
-	strcpy (buffInpProg, string);
-
-	nextWord= strtok( buffInpProg, TOKENS);
-
-	while (nextWord != NULL && i< AUX_ARGC)
+	if( NULL != string)
 	{
-		auxargv[i++]= nextWord;
-		nextWord= strtok (NULL, TOKENS);
-	}
+		strcpy (buffInpProg, string);
 
-	auxargc= i;
-	inputDatos= INTERNO;
+		nextWord= strtok( buffInpProg, TOKENS);
 
-	// Blanqueo los demas punteros:
-	if (i< AUX_ARGC)
-	{
-		while (i< AUX_ARGC)
+		while (nextWord != NULL && i< AUX_ARGC)
 		{
-			auxargv[i++]= NULL;
+			auxargv[i++]= nextWord;
+			nextWord= strtok (NULL, TOKENS);
 		}
+		auxargc= i;
+
+		// Blanqueo los demas punteros:
+		if (i< AUX_ARGC)
+		{
+			while (i< AUX_ARGC)
+			{
+				auxargv[i++]= NULL;
+			}
+		}
+		retval=1;
 	}
-	return 1;
+
+	return retval;
 }
+
+/*
+static inline void vt_SetPosition (int C, int L)
+{
+	vtsend_cursor_position( &nts.vtsend, C, L );
+}
+
+static inline void vt_SetNewLine (int X)
+{
+	vtsend_cursor_down( &(nts.vtsend), X );
+	vtsend_cursor_backward( &(nts.vtsend), WINDOWS_COL_MAX);
+}
+
+static inline void vt_PromtPosInit (void)
+{
+	vtsend_cursor_backward( &(nts.vtsend), WINDOWS_COL_MAX);
+}
+
+static inline void vt_PromtPosSalve (void)
+{
+	vtsend_cursor_position_save( &(nts.vtsend) );
+}
+
+static inline void vt_PromtPosRestore (void)
+{
+	vtsend_cursor_position_restore( &(nts.vtsend) );
+}
+*/
 

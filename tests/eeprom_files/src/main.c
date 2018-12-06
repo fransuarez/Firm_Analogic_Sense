@@ -34,7 +34,6 @@ typedef struct dataprocess
 
 static int test1 			( void );
 static int processBuffer 	( uint8_t *, uint8_t *  );
-static int processData		( void  );
 
 static uint8_t mem_read_buffer[SIZE_BUFF_MEM];
 static uint8_t mem_write_buffer[SIZE_BUFF_MEM];
@@ -91,28 +90,22 @@ static int processBuffer ( uint8_t * buffer_in, uint8_t * buffer_out )
 	return retval;
 }
 
-static int	processData( void )
-{
-	int retval= RET_ERROR;
-
-	if( dataLog_Page_Store( &data_write ) )
-	{
-		retval= RET_OK;
-	}
-
-	return retval;
-}
 
 //***************************************************************************************+
 static int test1 (void)
 {
-	int sizeMsg, retproc, retval= RET_ERROR;
+	int  sizeMsg, retproc, retval= RET_ERROR;
 	FILE * fd_data_input;
 	FILE * fd_data_output;
 	char data_inp_buffer[SIZE_BUFF_FILES];
 	char data_out_buffer[SIZE_BUFF_FILES];
 	char * retaux;
 	uint8_t * ptrBuffWrite;
+
+	size_t size_datos[3]=
+	{
+		sizeof(uint8_t), sizeof(uint16_t), sizeof(uint32_t)
+	};
 
 	fd_data_input = fopen ( "read_registers.txt" , "r+" );
 	if( NULL ==  fd_data_input )
@@ -144,8 +137,7 @@ static int test1 (void)
 			retproc= processBuffer( (uint8_t *) data_inp_buffer, ptrBuffWrite );
 			if( RET_FULL ==  retproc )
 			{
-				sizeMsg= processData();
-				if( sizeMsg )
+				if( dataLog_Page_Store( &data_write ) )
 				{
 					retval= RET_OK;
 				}
@@ -167,7 +159,7 @@ static int test1 (void)
 	uint8_t * ptr;
 	dproc_t data;
 
-	if( dataLog_Page_Load( &data_read ) )
+	if( dataLog_Page_Load( &data_read, 0) )
 	{
 		if( 0 < sprintf( data_out_buffer, "T %2d:%2d\n\n", data_read.hourReg, data_read.minuReg) )
 		{

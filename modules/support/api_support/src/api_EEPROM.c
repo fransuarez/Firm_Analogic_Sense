@@ -16,6 +16,7 @@
 #define ALINGNED_ADDRESS(X) ( 0 == (0x03 & X))
 #define ALINGNED_PAGE(X) 	( 0 == (0x7F & X))
 #define PAGE_INIT_ADDRESS	( 7 ) // Equivalente a sqrt(EEPROM_PAGE_SIZE)  esto mejora la perfomance del algoritmo
+#define EEPROM_CMD_END_PROG ( 0 )
 //================================[EEPROM Management]=========================================
 
 int EEPROM_init (uint8_t mode)
@@ -55,6 +56,7 @@ int EEPROM_writeByte (uint32_t addr, uint8_t value)
 		pEepromMem[0] = auxValue;
 		Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_ERASE_PRG_PAGE );
 		Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+		Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_END_PROG );
 
 		retval= 1;
 	}
@@ -75,7 +77,7 @@ int EEPROM_readByte (uint32_t addr, uint8_t* value)
 
 		// return auxValue in position of new Byte value
 		*value= pAuxValue[addr % 4];
-		Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+		//Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
 
 		retval=1;
 	}
@@ -99,6 +101,7 @@ int EEPROM_writeWord (uint32_t addr4, uint32_t value)
 		// write 4 bytes or 1 word value in eeprom:
 		Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_ERASE_PRG_PAGE );
 		Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+		Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_END_PROG );
 
 		retval=1;
 	}
@@ -116,7 +119,7 @@ int EEPROM_readWord (uint32_t addr4, uint32_t* value)
 
 		// read 4 bytes in auxValue
 		*value = *((uint32_t*) EEPROM_ADDRESS( pageAddr,pageOffset ));
-		Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+		//Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
 
 		retval=1;
 	}
@@ -132,7 +135,7 @@ int EEPROM_writePage (uint32_t addr4, uint8_t* buffWrite)
 		uint32_t pageAddr = addr4>>PAGE_INIT_ADDRESS;
 		uint32_t pageOffset = addr4 - (pageAddr<<PAGE_INIT_ADDRESS);
 
-	 	Chip_EEPROM_SetAutoProg( LPC_EEPROM, EEPROM_AUTOPROG_AFT_LASTWORDWRITTEN );
+	 	//Chip_EEPROM_SetAutoProg( LPC_EEPROM, EEPROM_AUTOPROG_AFT_LASTWORDWRITTEN );
 
 		uint32_t *pEepromMem = (uint32_t*) EEPROM_ADDRESS( pageAddr, pageOffset );
 
@@ -142,8 +145,9 @@ int EEPROM_writePage (uint32_t addr4, uint8_t* buffWrite)
 		{
 			//pEepromMem= (uint32_t*) buffWrite;
 			memcpy( pEepromMem, buffWrite, EEPROM_PAGE_SIZE );
-			//Chip_EEPROM_SetCmd(LPC_EEPROM, EEPROM_CMD_ERASE_PRG_PAGE);
+			Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_ERASE_PRG_PAGE );
 			Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+			Chip_EEPROM_SetCmd( LPC_EEPROM, EEPROM_CMD_END_PROG );
 
 			retval=1;
 		}
@@ -167,7 +171,7 @@ int EEPROM_readPage (uint32_t addr4, uint8_t* readBuff)
 		{
 			memcpy( readBuff, pEepromMem, EEPROM_PAGE_SIZE );
 
-			Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
+			//Chip_EEPROM_WaitForIntStatus( LPC_EEPROM, EEPROM_INT_ENDOFPROG );
 
 			retval=1;
 		}

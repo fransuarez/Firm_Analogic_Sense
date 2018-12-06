@@ -18,6 +18,7 @@
 
 #define EEPROM_ADD_TIME_MAX	( EEPROM_ADD_INIT_REG )
 #define EEPROM_ADD_REG_MAX	( EEPROM_ADD_RESERVED )
+#define EEPROM_REG_MAX_IDS	( (EEPROM_ADD_REG_MAX-EEPROM_ADD_INIT_REG)/SIZE_WORDS_REG_LOG )
 
 #define SIZE_WORDS_REG_TIME		( 1 )
 #define SIZE_BYTES_IN_WORD		( 4 )
@@ -54,7 +55,8 @@ typedef struct _data_log_eeprom
 } dlogMem_t;
 
 int dataLog_Init (void);
-int dataLog_Page_Store (dlogMem_t* dataToLog);
-int dataLog_Page_Load (dlogMem_t* dataToLog);
+int dataLog_Page_Store (dlogMem_t* loadData);
+int dataLog_Page_Load (dlogMem_t* readData, uint16_t idReg);
+int dataLog_GetStatus (uint16_t* retCount);
 
 #endif /* MODULES_SUPPORT_MEMDRIVE_INC_BINARYFILES_H_ */

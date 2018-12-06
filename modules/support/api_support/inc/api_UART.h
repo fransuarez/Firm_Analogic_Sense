@@ -50,6 +50,7 @@ uint8_t UART_RecvChar 	( void );
 #define print_RS232(x)  	UART_Send ( 2, (uint8_t *)(x), strlen(x) )
 #define sendChr_DEBUG(x)  	UART_SendChar ( x )
 #define sendStr_DEBUG(x)  	UART_Send ( 1, (uint8_t *)(x), strlen(x) )
+#define sendBuf_DEBUG(x,y) 	UART_Send ( 1, (uint8_t *)(x), y )
 #define recvBuf_DEBUG(x,y)	UART_Recv ( 1, (uint8_t *)(x), y )
 
 #endif /* CIAAUART_H_ */

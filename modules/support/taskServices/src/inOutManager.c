@@ -16,6 +16,8 @@
 
 
 #define SIZE_BUFF_TERM		( 32 )
+#define SIZE_MON_TERM		( 128 )
+
 #define SAMPLE_ANALOG_MSEC	( 15*1000 ) //Viene de
 #define SAMPLE_DIGITAL_MSEC	( 200 )
 #define SAMPLE_DIGITAL_IRQ	( 0 )
@@ -31,15 +33,16 @@
 
 
 //**************************************************************************************************
-extern xTaskHandle 			MGR_INPUT_HANDLER;
-extern xTaskHandle 			MGR_OUTPUT_HANDLER;
+extern TaskHandle_t 		MGR_INPUT_HANDLER;
+extern TaskHandle_t 		MGR_OUTPUT_HANDLER;
 extern UBaseType_t*			STACKS_TAREAS;
 
-extern xQueueHandle 		MGR_INPUT_QUEUE;
-extern xQueueHandle 		MGR_OUTPUT_QUEUE;
-extern xQueueHandle 		MGR_TERMINAL_QUEUE;
-extern xQueueHandle 		MGR_DATALOG_QUEUE;
-extern xSemaphoreHandle 	MGR_INPUT_MUTEX;
+extern QueueHandle_t 		MGR_INPUT_QUEUE;
+extern QueueHandle_t 		MGR_OUTPUT_QUEUE;
+extern QueueHandle_t 		MGR_TERMINAL_QUEUE;
+extern QueueHandle_t 		MGR_DATALOG_QUEUE;
+extern SemaphoreHandle_t 	MGR_INPUT_MUTEX;
+extern TimerHandle_t 		TIMER_1_OBJ;
 
 //**************************************************************************************************
 typedef struct periferics_register
@@ -58,8 +61,16 @@ typedef struct periferics_register
 
 } perReg_t;
 
+typedef struct periferics_ids
+{
+	externId_t 	id;
+	const char * name;
+	const char * unit;
+
+} perInfo_t;
+
 //**************************************************************************************************
-static int sendReg=0;
+//static int sendReg=0;
 
 static RTC_t hdRTC=
 {
@@ -71,9 +82,24 @@ static RTC_t hdRTC=
 		.min  = 0,
 		.sec  = 0
 };
-static char 			buffSendTerminal[SIZE_BUFF_TERM]= "vacio";
+static char 			buffSendTerminal[SIZE_BUFF_TERM]= "";
+static char 			buffMonTerminal[SIZE_MON_TERM]= "";
 static GpioReg_t 		regToLog[REG_OPR_LOG];
 static dlogPack_t 		dataToLog = { .cmd= writePage, .data= regToLog };
+
+
+static perInfo_t nombInputs[EXT_INPUTS_TOTAL]=
+{
+	{ .id= TERMOCUPLE, .name= "T_CUPLA", .unit= "CELSIUS" },
+	{ .id= THERMISTOR, .name= "T_NTC" , .unit= "CELSIUS" },
+	{ .id= AMPERIMETER, .name= "C_AMP", .unit= "AMPERS"  },
+	{ .id= CONDUCTIMETER, .name= "Q_ION", .unit= "mgSQRMTR" },
+	{ .id= WATER_LEVEL, .name= "L_AGUA", .unit= "cMETERS" },
+	{ .id= SW_START_STOP, .name= "SW_START", .unit= "LEVEL" },
+	{ .id= SW_INTERRUPT, .name= "SW_INTER", .unit= "LEVEL" },
+	{ .id= SL_OBJECT_DETECT, .name= "SL_OBJECT", .unit= "LEVEL" },
+	{ .id= SL_MODE_FUNCTION, .name= "SL_MODE", .unit= "LEVEL" }
+};
 
 static perReg_t stateInputs[EXT_INPUTS_TOTAL]=
 {
@@ -91,11 +117,11 @@ static perReg_t stateInputs[EXT_INPUTS_TOTAL]=
 	},
 	{
 		.name= CONDUCTIMETER, 	 .id_gpio= AIN_2, .enable= FALSE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
-		.unit= CELSIUS, .smt_max= 100, .smt_min= 0
+		.unit= mgSQRMTR, .smt_max= 100, .smt_min= 0
 	},
 	{
 		.name= WATER_LEVEL, 	 .id_gpio= AIN_3, .enable= FALSE, .seg_time_samples= SAMPLE_ANALOG_MSEC,
-		.unit= CELSIUS, .smt_max= 1000, .smt_min= 800,
+		.unit= cMETERS, .smt_max= 1000, .smt_min= 800,
 	},
 	{
 		.name= SW_START_STOP, 	 .id_gpio= TECL1, .enable= TRUE, .seg_time_samples= SAMPLE_DIGITAL_MSEC,
@@ -114,7 +140,20 @@ static perReg_t stateInputs[EXT_INPUTS_TOTAL]=
 		.unit= LEVEL,
 	}
 };
+
 //**************************************************************************************************
+// solo para debug
+uint8_t sizeTypes[6];
+void _calcSizeTypes (uint8_t * retval)
+{
+	retval[0]= sizeof(TypeLog_t);
+	retval[1]= sizeof(TypePort_t);
+	retval[2]= sizeof(shTime_t);
+	retval[3]= sizeof(perif_t);
+	retval[4]= sizeof(dInOutQueue_t);
+	retval[5]= sizeof(unit_t);
+}
+
 // TODO agregarla alguna libreria de manejo de tiempos. Lo unico que deberia de pasarle extra es 4' y 15".
 static uint8_t calculateDiffTime (uint8_t initMin, uint8_t initSec, uint8_t endMin, uint8_t endSec)
 {
@@ -168,8 +207,8 @@ static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
 			{
 				RTC_getTime( &hdRTC );
 			}
-			dataToLog.hourSamples= hdRTC.hour;
-			dataToLog.minuSamples= hdRTC.min;
+			dataToLog.auxVal_1= hdRTC.hour;
+			dataToLog.auxVal_2= hdRTC.min;
 			minute_init= hdRTC.min;
 			second_init= hdRTC.sec;
 		}
@@ -299,22 +338,29 @@ static uint8_t historyAnInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
 	return retval;
 }
 
-// solo para debug
-uint8_t sizeTypes[6];
-void _calcSizeTypes (uint8_t * retval)
+//**************************************************************************************************
+void timerMonitCallback (TimerHandle_t pxTimer)
 {
-	retval[0]= sizeof(TypeLog_t);
-	retval[1]= sizeof(TypePort_t);
-	retval[2]= sizeof(shTime_t);
-	retval[3]= sizeof(perif_t);
-	retval[4]= sizeof(dInOutQueue_t);
-	retval[5]= sizeof(unit_t);
+	static int i=0;
+	static terMsg_t msgToSend= { .mode= MP_PRINT_NORMAL, .msg=buffMonTerminal, .size=SIZE_MON_TERM };
+
+	if( EXT_INPUTS_TOTAL <= i )
+	{
+		i= 0;
+	}
+
+	sprintf( buffMonTerminal, "ID:%s UN:%s HAB:%i V:%i %i'%i\"", nombInputs[i].name, nombInputs[i].unit, stateInputs[i].enable,
+			 stateInputs[i].value, stateInputs[i].time_value.minutes, stateInputs[i].time_value.seconds );
+
+	Terminal_Msg_Normal( &msgToSend, buffMonTerminal );
+	xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
+
+	i++;
 }
 
-//**************************************************************************************************
 void taskControlOutputs (void * a)
 {
-	static terMsg_t msgToSend= { .mode= MP_DEF, .msg=buffSendTerminal, .size=SIZE_BUFF_TERM };
+	static terMsg_t msgToSend= { .mode= MP_PRINT_NORMAL, .msg=buffSendTerminal, .size=SIZE_BUFF_TERM };
 	dOutputQueue_t dataRecLed;
 	uint8_t i;
 
@@ -324,12 +370,12 @@ void taskControlOutputs (void * a)
 	{
 		if( pdTRUE == xQueueReceive( MGR_OUTPUT_QUEUE, &dataRecLed, TIMEOUT_QUEUE_INPUT ))
 		{
-			if( outputLed == GET_TYPE(dataRecLed.mode) )
+			if( outputLed == dataRecLed.mode )
 			{
 				ciaaLED_Set( dataRecLed.gpio, dataRecLed.data.value );
 
-				sprintf( buffSendTerminal, "[LED_%d= %i uni]\r\n", GET_ID(dataRecLed.gpio), dataRecLed.data.value );
-				Terminal_Msg_Def( &msgToSend, buffSendTerminal );
+				sprintf( buffSendTerminal, "[LED_%d= %i uni]\r\n", dataRecLed.gpio, dataRecLed.data.value );
+				Terminal_Msg_Normal( &msgToSend, buffSendTerminal );
 				xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 			}
 /*
@@ -356,7 +402,8 @@ void taskControlOutputs (void * a)
 void taskControlInputs (void * a)
 {
 	static dOutputQueue_t dataToSend;
-	//static terMsg_t msgToSend;
+	static terMsg_t msgToSend;
+	int monitorMode=0;
 	dInOutQueue_t dataRecKey;
 	repAnStat_t reportAnalogInputs[ADC_INPUTS];
 	uint16_t retAnalogUpdate;
@@ -372,7 +419,7 @@ void taskControlInputs (void * a)
 	{
 		if( pdTRUE == xQueueReceive( MGR_INPUT_QUEUE, &dataRecKey, TIMEOUT_QUEUE_INPUT ))
 		{
-			if( inputTecl == GET_TYPE(dataRecKey.mode) )
+			if( inputTecl == dataRecKey.mode)
 			{
 				dataToSend.mode= outputLed;
 				dataToSend.data.value= TRUE;
@@ -395,7 +442,7 @@ void taskControlInputs (void * a)
 				}
 			}
 
-			if( inputConfig == GET_TYPE(dataRecKey.mode) )
+			if( inputConfig == dataRecKey.mode )
 			{
 				uint8_t id= dataRecKey.gpio;
 
@@ -408,7 +455,26 @@ void taskControlInputs (void * a)
 				{
 
 				}
+			}
 
+			if( inputMonitor == dataRecKey.mode )
+			{
+				(dataRecKey.gpio)? (monitorMode= 1): (monitorMode= 0);
+
+				if( monitorMode )
+				{
+					if( pdPASS ==  xTimerStart( TIMER_1_OBJ, 0 )  )
+					{
+						Terminal_Take( &msgToSend );
+						xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
+					}
+				}
+				else
+				{
+					xTimerStop( TIMER_1_OBJ, 0 );
+					Terminal_Release( &msgToSend );
+					xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
+				}
 			}
 		}
 		else // FIXME ESTO TENGO QUE USAR TIMERS DE FREERTOS O DEL SISTEMA. no es constante para nada!!!!

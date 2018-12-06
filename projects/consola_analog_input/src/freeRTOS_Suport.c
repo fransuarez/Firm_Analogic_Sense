@@ -7,20 +7,28 @@
 #include "services_config.h"
 
 #define MSEC_REFRESH_CPU	2000
-xTaskHandle 	 TASK_N1_HANDLER;
-xTaskHandle 	 TASK_N2_HANDLER;
-xTaskHandle 	 TASK_N3_HANDLER;
-xTaskHandle 	 TASK_N4_HANDLER;
+#define NUM_TASK_SUPPORT	2  // iddle y timerTask
+#define NUM_TASK_TOTAL		NUM_TASK+NUM_TASK_SUPPORT // iddle y timerTask
 
-xQueueHandle 	 MGR_INPUT_QUEUE;
-xQueueHandle 	 MGR_OUTPUT_QUEUE;
-xQueueHandle 	 MGR_TERMINAL_QUEUE;
-xQueueHandle 	 MGR_DATALOG_QUEUE;
+TaskHandle_t 	 TASK_N1_HANDLER;
+TaskHandle_t 	 TASK_N2_HANDLER;
+TaskHandle_t 	 TASK_N3_HANDLER;
+TaskHandle_t 	 TASK_N4_HANDLER;
 
-xSemaphoreHandle MGR_TERMINAL_MUTEX;
-xSemaphoreHandle MGR_INPUT_MUTEX;
+QueueHandle_t 	 MGR_INPUT_QUEUE;
+QueueHandle_t 	 MGR_OUTPUT_QUEUE;
+QueueHandle_t 	 MGR_TERMINAL_QUEUE;
+QueueHandle_t 	 MGR_DATALOG_QUEUE;
 
-TaskStatus_t pxTaskStatusArray[NUM_TASK+1];
+SemaphoreHandle_t MGR_TERMINAL_MUTEX;
+SemaphoreHandle_t MGR_INPUT_MUTEX;
+SemaphoreHandle_t MGR_DATALOG_MUTEX;
+
+TimerHandle_t 	TIMER_1_OBJ;
+TimerHandle_t 	TIMER_2_OBJ;
+TimerHandle_t 	TIMER_3_OBJ;
+
+TaskStatus_t pxTaskStatusArray[NUM_TASK_TOTAL];
 
 // Arreglo con el stack disponible de las tareas creadas en main
 typedef struct _recurses_task
@@ -40,13 +48,15 @@ UBaseType_t* 	ptrstack= stacktareas;
 //UBaseType_t* 	ptrCpu= cpuTasks;
 
 // Por alguna razon las lee en este orden al estado de las tareas:
-recTask_t 		taskInfoProc[NUM_TASK+1]=
+recTask_t 		taskInfoProc[NUM_TASK_TOTAL]=
 {
 	{.RAM_stack= configMINIMAL_STACK_SIZE },
-	{.RAM_stack= TASK_N3_STACK	},
 	{.RAM_stack= TASK_N2_STACK	},
 	{.RAM_stack= TASK_N1_STACK	},
-	{.RAM_stack= TASK_N4_STACK	}
+	{.RAM_stack= TASK_N4_STACK	},
+	{.RAM_stack= TASK_N3_STACK	},
+	{.RAM_stack= configMINIMAL_STACK_SIZE*2 }
+
 };
 
 
@@ -64,7 +74,7 @@ int tasks_create ( void )
 
 	if( pdPASS != retaux )
 	{
-		retval= 1;
+		retval |= 1<<0;
 	}
 
 	retaux= xTaskCreate( TASK_N2, (const char *)
@@ -76,7 +86,7 @@ int tasks_create ( void )
 
 	if( pdPASS != retaux )
 	{
-		retval= 2;
+		retval |= 1<<1;
 	}
 
 	retaux= xTaskCreate( TASK_N3, (const char *)
@@ -88,7 +98,7 @@ int tasks_create ( void )
 
 	if( pdPASS != retaux )
 	{
-		retval= 3;
+		retval |= 1<<2;
 	}
 
 	retaux= xTaskCreate( TASK_N4, (const char *)
@@ -100,7 +110,7 @@ int tasks_create ( void )
 
 	if( pdPASS != retaux )
 	{
-		retval= 4;
+		retval |= 1<<3;
 	}
 
 	MGR_INPUT_QUEUE  = xQueueCreate( MGR_INPUT_QUEUE_LENGT, MGR_INPUT_QUEUE_SIZE );
@@ -108,8 +118,25 @@ int tasks_create ( void )
 	MGR_TERMINAL_QUEUE = xQueueCreate( MGR_TERMINAL_QUEUE_LEN, MGR_TERMINAL_QUEUE_SIZ );
 	MGR_DATALOG_QUEUE = xQueueCreate( MGR_DATALOG_QUEUE_LENGT, MGR_DATALOG_QUEUE_SIZE );
 
+	if( !MGR_INPUT_QUEUE || !MGR_OUTPUT_QUEUE || !MGR_TERMINAL_QUEUE || !MGR_DATALOG_QUEUE)
+	{
+		retval |= 1<<4;
+	}
+	MGR_DATALOG_MUTEX= xSemaphoreCreateMutex();
 	MGR_TERMINAL_MUTEX = xSemaphoreCreateMutex();
 	MGR_INPUT_MUTEX= xSemaphoreCreateMutex();
+
+	if( !MGR_DATALOG_MUTEX || !MGR_TERMINAL_MUTEX || !MGR_INPUT_MUTEX )
+	{
+		retval |= 1<<5;
+	}
+
+	TIMER_1_OBJ = xTimerCreate( TIMER_1_NAME, TIMER_1_PER, pdTRUE, TIMER_1_IDn, TIMER_1_CALLBACK );
+
+	if( !TIMER_1_OBJ )
+	{
+		retval |= 1<<6;
+	}
 
 	return retval;
 }
@@ -128,17 +155,17 @@ void vTaskGetRunTimeStats( char *pcWriteBuffer )
 	static int first_time= 0;
 
 	/* Generate raw status information about each task. */
-	uxArraySize = uxTaskGetSystemState( pxTaskStatusArray, NUM_TASK+1, &ulTotalRunTime );
+	uxArraySize = uxTaskGetSystemState( pxTaskStatusArray, NUM_TASK_TOTAL, &ulTotalRunTime );
 
 	/* For percentage calculations. */
 	ulTotalRunTime /= 100UL;
 
 	/* Avoid divide by zero errors. */
-	if( ulTotalRunTime )
+	if( uxArraySize && ulTotalRunTime )
 	{
 		/* For each populated position in the pxTaskStatusArray array,
          format the raw data as human readable ASCII data. */
-		for( x = 0; x <= uxArraySize; x++ )
+		for( x = 0; x < uxArraySize; x++ )
 		{
 			if( !first_time )
 			{
