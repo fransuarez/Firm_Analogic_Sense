@@ -17,9 +17,6 @@ typedef struct type_gpio_input
 
 } gpio_inp_t;
 
-enum {
-	PIN
-};
 
 void 	GPIO_EnablePin  (uint8_t pinPort, uint8_t pinNumber, uint8_t func, uint8_t gpioPort, uint8_t gpioNumber, uint8_t mode);
 void 	GPIO_SetLevel 	(uint8_t gpioPort, uint8_t gpioPin, bool level);

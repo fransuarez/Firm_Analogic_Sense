@@ -8,14 +8,12 @@
 #ifndef MODULES_SUPPORT_SENSADOANALOGICO_
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
+//#include "ciaaGPIO_def.h"
+
 #define REG_OPR_LOG	32	// Numero de registros por operacion de log. Equivale a una pagina de memoria con 32 words.
 
 
 /*==================[typedef]================================================*/
-typedef uint8_t		statPin_t;
-typedef uint8_t		type_t;
-typedef uint8_t		cfgMode_t;
-
 
 typedef enum _type_log
 {
@@ -30,16 +28,17 @@ typedef enum _type_log
 
 typedef enum _type_port
 {
-	inputConfig =0,
-	inputDigital,
-	inputAnalog ,
-	inputTecl	,
-	inputMonitor,
-	outputDigital,
-	outputAnalog,
-	outputLed	,
-	outputConfig,
-	outputMonitor
+	portInputDigital=0,
+	portInputAnalog ,
+	portInputTecl	,
+
+	portOutputDigital,
+	portOutputAnalog,
+	portOutputLed	,
+
+	portReportStatus,
+	portReportConfig,
+	portParamtConfig
 
 
 } TypePort_t; //size= 1 byte
@@ -79,7 +78,7 @@ typedef struct _configurer_gpio
 // Tamaño del registro 4 Bytes o 1 Word.
 typedef struct _register_gpio
 {
-	uint8_t 	name;
+	uint8_t 	name;	// es del tipo exterId_t -> ver que tamaño tiene en bytes sino lo fuerzo a uint8_t
 	uint8_t		secTime;
 	uint16_t 	value; 	// Esto despues se puede optimizar y dejar solo 4 char/bytes que representen un uint32
 
@@ -97,7 +96,7 @@ typedef struct _data_log_pack
 
 typedef struct _data_input_queue
 {
-	uint8_t		mode; // es del tipo TypePort_t -> ver que tamaño tiene en bytes sino lo fuerzo a uint8_t
+	TypePort_t	mode; // es del tipo TypePort_t -> ver que tamaño tiene en bytes sino lo fuerzo a uint8_t
 	uint8_t		gpio; // es del tipo perif_t pero como esta definidio en otro modulo lo fuerzo a uint8_t.
 	shTime_t	sTime;
 	union
@@ -113,6 +112,9 @@ typedef dInOutQueue_t dInputQueue_t;
 
 
 /*
+typedef uint8_t		statPin_t;
+typedef uint8_t		type_t;
+typedef uint8_t		cfgMode_t;
 
 typedef struct GPIO_digital
 {

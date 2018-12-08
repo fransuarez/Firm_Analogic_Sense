@@ -5,19 +5,19 @@
  *      Author: fran
  */
 
+#include <stdio.h>
+#include "services_config.h"
+#include "terminalManager.h"
 #include "binaryFiles.h"
 #include "api_EEPROM.h"
 
-#include "services_config.h"
-#include "terminalManager.h"
-#include <stdio.h>
 
-
-extern TaskHandle_t			MGR_DATALOG_HANDLER;
-extern UBaseType_t*			STACKS_TAREAS;
+//extern TaskHandle_t			MGR_DATALOG_HANDLER;
+//extern UBaseType_t*			STACKS_TAREAS;
 
 extern QueueHandle_t 		MGR_DATALOG_QUEUE;
 extern QueueHandle_t 		MGR_TERMINAL_QUEUE;
+
 extern SemaphoreHandle_t 	MGR_INPUT_MUTEX;
 extern SemaphoreHandle_t 	MGR_DATALOG_MUTEX;
 
@@ -171,7 +171,7 @@ void dataLog_Service (void * a)
 			}
 		}
 
-		ACTUALIZAR_STACK( MGR_DATALOG_HANDLER, MGR_DATALOG_ID_STACK );
+		//ACTUALIZAR_STACK( MGR_DATALOG_HANDLER, MGR_DATALOG_ID_STACK );
 		vTaskDelay( MGR_DATALOG_DELAY );
 	}
 }

@@ -57,15 +57,15 @@
 //#define MSG_POS_UP_FIL(X)	( 1 )
 
 //***************** ********************************************************
-
-extern TaskHandle_t			MGR_TERMINAL_HANDLER;
-extern SemaphoreHandle_t 	MGR_TERMINAL_MUTEX;
 extern QueueHandle_t 		MGR_TERMINAL_QUEUE;
 extern QueueHandle_t 		MGR_DATALOG_QUEUE;
 extern QueueHandle_t 		MGR_INPUT_QUEUE;
 extern QueueHandle_t 		MGR_OUTPUT_QUEUE;
 
-extern UBaseType_t*			STACKS_TAREAS;
+extern SemaphoreHandle_t 	MGR_TERMINAL_MUTEX;
+
+//extern TaskHandle_t			MGR_TERMINAL_HANDLER;
+//extern UBaseType_t*			STACKS_TAREAS;
 /***********************************************************************************/
 
 typedef struct
@@ -169,7 +169,7 @@ void taskTerminal (void * parametrosTarea)
 					case CMD_TASK_N2:
 						//if( 0xFFFF == pDataInp.arg1 )
 						{
-							dataGpio.mode= inputMonitor;
+							dataGpio.mode= portReportConfig;
 							dataGpio.gpio= pDataInp.arg1;
 						}
 						xQueueSend( MGR_INPUT_QUEUE, &dataGpio, TIMEOUT_QUEUE_INPUT );
@@ -195,7 +195,7 @@ void taskTerminal (void * parametrosTarea)
 			}
 		}
 */
-		ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
+		//ACTUALIZAR_STACK( MGR_TERMINAL_HANDLER, MGR_TERMINAL_ID_STACK );
 		vTaskDelay( MGR_TERMINAL_DELAY );
 	}
 }

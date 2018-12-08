@@ -38,12 +38,79 @@
  ** @{ */
 
 /*==================[inclusions]=============================================*/
+#include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
+#include "task.h"
+
+#include "terminalManager.h"
+#include "filesManager.h"
+#include "inputManager.h"
+#include "outputManager.h"
+
+
+// -------------------- Definiciones tarea 1  ---------------------
+#define  TASK_N1				taskControlOutputs
+#define  TASK_N1_DECRIPT		"DIGITAL Outputs Driver Task."
+// Con esta cantidad de stack le quedan libres 101 Bytes. Le sobran < 1*STACK_SIZE= 128
+#define  TASK_N1_STACK			(configMINIMAL_STACK_SIZE*2)
+#define  TASK_N1_PRIORITY		tskIDLE_PRIORITY+2
+
+// -------------------- Definiciones tarea 2  ---------------------
+#define  TASK_N2				taskControlInputs
+#define  TASK_N2_DECRIPT		"DIG/AN Inputs Driver Task."
+// Con esta cantidad de stack le quedan libres 79 Bytes. Le sobran < 1*STACK_SIZE =128
+#define  TASK_N2_STACK			(configMINIMAL_STACK_SIZE*2)
+#define  TASK_N2_PRIORITY		tskIDLE_PRIORITY+2
+
+// -------------------- Definiciones tarea 3  ---------------------
+#define  TASK_N3				taskTerminal
+#define  TASK_N3_DECRIPT		"Terminal Shell Task."
+// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
+#define  TASK_N3_STACK			(configMINIMAL_STACK_SIZE*4)
+#define  TASK_N3_PRIORITY		tskIDLE_PRIORITY+1
+
+// -------------------- Definiciones tarea 4  ---------------------
+#define  TASK_N4				dataLog_Service
+#define  TASK_N4_DECRIPT		"Logs Eeprom Driver Task."
+// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
+#define  TASK_N4_STACK			(configMINIMAL_STACK_SIZE*2)
+#define  TASK_N4_PRIORITY		tskIDLE_PRIORITY+1
+
+// -------------------- Definiciones timers  ---------------------
+
+#define  TIMER_1_NAME			"Envio Reportes Timer"
+#define  TIMER_1_PER			( 1000 / portTICK_PERIOD_MS )
+#define  TIMER_1_RELOAD			pdTRUE
+#define  TIMER_1_IDn			(void *) 1
+#define  TIMER_1_CALLBACK		timerCallbackReport
+
+#define  TIMER_2_NAME			"AnalogInputs Update"
+#define  TIMER_2_PER			( 3000 / portTICK_PERIOD_MS )
+#define  TIMER_2_RELOAD			pdTRUE
+#define  TIMER_2_IDn			(void *) 2
+#define  TIMER_2_CALLBACK		timerCallbackAnalog
+
+#define  TIMER_3_NAME			"Desactiva debounce teclas"
+#define  TIMER_3_PER			( 10000 / portTICK_PERIOD_MS )
+#define  TIMER_3_RELOAD			pdFALSE
+#define  TIMER_3_IDn			(void *) 3
+#define  TIMER_3_CALLBACK		timerCallbackTeclas
+
+#define  TIMER_4_NAME			"Sample debounce teclas"
+#define  TIMER_4_PER			( 200 / portTICK_PERIOD_MS )
+#define  TIMER_4_RELOAD			pdTRUE
+#define  TIMER_4_IDn			(void *) 4
+#define  TIMER_4_CALLBACK		timerCallbackDebounce
 
 /*==================[cplusplus]==============================================*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int tasks_create (void);
+int queues_create (void);
+int timers_create (void);
 
 
 /*==================[external data declaration]==============================*/
@@ -52,7 +119,7 @@ extern "C" {
 /** @brief main function
  * @return main function should never return
  */
-int main(void);
+//int main(void);
 
 /*==================[cplusplus]==============================================*/
 

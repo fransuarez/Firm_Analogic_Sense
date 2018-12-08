@@ -76,6 +76,7 @@ static inline void Terminal_Take( terMsg_t * msgToSend )
 {
 	msgToSend->mode= MP_BLOCK;
 }
+
 static inline void Terminal_Release( terMsg_t * msgToSend)
 {
 	msgToSend->mode= MP_RELEASE;

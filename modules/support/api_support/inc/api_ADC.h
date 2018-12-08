@@ -35,6 +35,8 @@
 #define CIAAAIN_H_
 
 //#include "chip.h"
+#include "lpc_types.h"
+
 //#define  AIN_1			( 1 )
 //#define  AIN_2			( 2 )
 //#define  AIN_3			( 3 )

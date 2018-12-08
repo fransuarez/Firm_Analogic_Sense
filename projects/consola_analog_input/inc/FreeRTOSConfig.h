@@ -114,6 +114,7 @@ to exclude the API function. */
 #define INCLUDE_uxTaskGetStackHighWaterMark	1
 
 extern uint32_t TimerForRunTimeStats( void );
+
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()  (1)
 #define portGET_RUN_TIME_COUNTER_VALUE() TimerForRunTimeStats()
 

@@ -4,7 +4,9 @@
  *  Created on: 9/7/2018
  *      Author: fran
  */
+#include "main.h"
 #include "services_config.h"
+
 
 #define MSEC_REFRESH_CPU	2000
 #define NUM_TASK_SUPPORT	2  // iddle y timerTask
@@ -27,6 +29,8 @@ SemaphoreHandle_t MGR_DATALOG_MUTEX;
 TimerHandle_t 	TIMER_1_OBJ;
 TimerHandle_t 	TIMER_2_OBJ;
 TimerHandle_t 	TIMER_3_OBJ;
+TimerHandle_t 	TIMER_4_OBJ;
+
 
 TaskStatus_t pxTaskStatusArray[NUM_TASK_TOTAL];
 
@@ -50,15 +54,14 @@ UBaseType_t* 	ptrstack= stacktareas;
 // Por alguna razon las lee en este orden al estado de las tareas:
 recTask_t 		taskInfoProc[NUM_TASK_TOTAL]=
 {
-	{.RAM_stack= configMINIMAL_STACK_SIZE },
-	{.RAM_stack= TASK_N2_STACK	},
-	{.RAM_stack= TASK_N1_STACK	},
-	{.RAM_stack= TASK_N4_STACK	},
-	{.RAM_stack= TASK_N3_STACK	},
-	{.RAM_stack= configMINIMAL_STACK_SIZE*2 }
+	{.RAM_stack= configMINIMAL_STACK_SIZE 	}, //5
+	{.RAM_stack= TASK_N4_STACK				}, //4
+	{.RAM_stack= TASK_N1_STACK				}, //1
+	{.RAM_stack= TASK_N2_STACK				}, //2
+	{.RAM_stack= configMINIMAL_STACK_SIZE*2	}, //6
+	{.RAM_stack= TASK_N3_STACK 				}  //3
 
 };
-
 
 int tasks_create ( void )
 {
@@ -113,6 +116,13 @@ int tasks_create ( void )
 		retval |= 1<<3;
 	}
 
+	return retval;
+}
+
+int queues_create (void)
+{
+	int retval= 0;
+
 	MGR_INPUT_QUEUE  = xQueueCreate( MGR_INPUT_QUEUE_LENGT, MGR_INPUT_QUEUE_SIZE );
 	MGR_OUTPUT_QUEUE = xQueueCreate( MGR_OUTPUT_QUEUE_LENGT, MGR_OUTPUT_QUEUE_SIZE );
 	MGR_TERMINAL_QUEUE = xQueueCreate( MGR_TERMINAL_QUEUE_LEN, MGR_TERMINAL_QUEUE_SIZ );
@@ -122,6 +132,7 @@ int tasks_create ( void )
 	{
 		retval |= 1<<4;
 	}
+
 	MGR_DATALOG_MUTEX= xSemaphoreCreateMutex();
 	MGR_TERMINAL_MUTEX = xSemaphoreCreateMutex();
 	MGR_INPUT_MUTEX= xSemaphoreCreateMutex();
@@ -131,24 +142,31 @@ int tasks_create ( void )
 		retval |= 1<<5;
 	}
 
-	TIMER_1_OBJ = xTimerCreate( TIMER_1_NAME, TIMER_1_PER, pdTRUE, TIMER_1_IDn, TIMER_1_CALLBACK );
+	return retval;
+}
 
-	if( !TIMER_1_OBJ )
+int timers_create (void)
+{
+	int retval= 0;
+
+	TIMER_1_OBJ = xTimerCreate( TIMER_1_NAME, TIMER_1_PER, TIMER_1_RELOAD, TIMER_1_IDn, TIMER_1_CALLBACK );
+	TIMER_2_OBJ = xTimerCreate( TIMER_2_NAME, TIMER_2_PER, TIMER_2_RELOAD, TIMER_2_IDn, TIMER_2_CALLBACK );
+	TIMER_3_OBJ = xTimerCreate( TIMER_3_NAME, TIMER_3_PER, TIMER_3_RELOAD, TIMER_3_IDn, TIMER_3_CALLBACK );
+	TIMER_4_OBJ = xTimerCreate( TIMER_4_NAME, TIMER_4_PER, TIMER_4_RELOAD, TIMER_4_IDn, TIMER_4_CALLBACK );
+
+	if( !TIMER_1_OBJ || !TIMER_2_OBJ || !TIMER_3_OBJ || !TIMER_4_OBJ )
 	{
 		retval |= 1<<6;
 	}
 
 	return retval;
 }
-
-
-
 /* This example demonstrates how a human readable table of run time stats
 information is generated from raw data provided by uxTaskGetSystemState().
 The human readable table is written to pcWriteBuffer.  (see the vTaskList()
 API function which actually does just this). */
 
-void vTaskGetRunTimeStats( char *pcWriteBuffer )
+void vTaskGetRunTimeStats (char *pcWriteBuffer)
 {
 	volatile UBaseType_t x, uxArraySize;
 	UBaseType_t ulTotalRunTime, ulStatsAsPercentage;
@@ -194,7 +212,6 @@ void vTaskGetRunTimeStats( char *pcWriteBuffer )
 	}
 }
 
-
 void vApplicationIdleHook (void)
 {
 	static TickType_t prev_tick=0;
@@ -212,7 +229,7 @@ void vApplicationIdleHook (void)
 }
 
 /* Defined in main.c. */
-uint32_t TimerForRunTimeStats( void )
+uint32_t TimerForRunTimeStats (void)
 {
 	return xTaskGetTickCountFromISR(); /* using RTOS tick counter */
 }

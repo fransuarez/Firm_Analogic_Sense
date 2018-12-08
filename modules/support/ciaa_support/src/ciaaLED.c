@@ -5,39 +5,22 @@
  *      Author: fran
  */
 
-#include "ciaaGPIO_def.h"
+//#include "ciaaGPIO_def.h"
+#include "lpc_types.h"
+
 #include "api_GPIO.h"
-
-#define LEDS_TOTAL 		( 6 )
-
-
-static const io_port_t gpioLEDBits[LEDS_TOTAL] =
-{
-	{GPIO_PORT_LEDR, GPIO_NUMB_LEDR},  // 0: Led Rojo
-	{GPIO_PORT_LEDG, GPIO_NUMB_LEDG},  // 1: Led Verde
-	{GPIO_PORT_LEDB, GPIO_NUMB_LEDB},  // 2: Led Azul
-	{GPIO_PORT_LED1, GPIO_NUMB_LED1},  // 3: Led 1
-	{GPIO_PORT_LED2, GPIO_NUMB_LED2},  // 4: Led 2
-	{GPIO_PORT_LED3, GPIO_NUMB_LED3}   // 5: Led 3
-};
+#include "ciaaPORT.h"
 
 void ciaaLED_Init (void)
 {
-	uint8_t i;
-	const dig_port_t pinConfig[LEDS_TOTAL]=
-	{
-		{PIN_PORT_LEDR, PIN_NUMB_LEDR, PIN_FUNCION_4},
-		{PIN_PORT_LEDG, PIN_NUMB_LEDG, PIN_FUNCION_4},
-		{PIN_PORT_LEDB, PIN_NUMB_LEDB, PIN_FUNCION_4},
-		{PIN_PORT_LED1, PIN_NUMB_LED1, PIN_FUNCION_0},
-		{PIN_PORT_LED2, PIN_NUMB_LED2, PIN_FUNCION_0},
-		{PIN_PORT_LED3, PIN_NUMB_LED3, PIN_FUNCION_0},
-	};
+	uint8_t id;
 
-	for ( i = 0; i < LEDS_TOTAL; i++)
+	for ( id=LED_R; LED_3>=id; id++)
 	{
-		GPIO_EnablePin( pinConfig[i].pinPort, pinConfig[i].pinNumber, pinConfig[i].function,
-						gpioLEDBits[i].pinPort, gpioLEDBits[i].pinNumber, GPIO_OUT_MODE );
+		GPIO_EnablePin( pin_config[id].pinPort, pin_config[id].pinNumber, pin_config[id].function,
+						pin_config[id].gpioPort, pin_config[id].gpioNumber, GPIO_OUT_MODE );
+
+		//ciaaLED_Set( id, 0 );
 	}
 }
 
@@ -45,7 +28,7 @@ void ciaaLED_Set (uint8_t LEDNumber, bool stat)
 {
 	if ( LEDS_VALID(LEDNumber) )
 	{
-		GPIO_SetLevel( gpioLEDBits[LEDS_INDEX(LEDNumber)].pinPort, gpioLEDBits[LEDS_INDEX(LEDNumber)].pinNumber, stat );
+		GPIO_SetLevel( pin_config[LEDNumber].gpioPort, pin_config[LEDNumber].gpioNumber, stat );
 	}
 }
 
@@ -53,7 +36,7 @@ bool ciaaLED_Test (uint8_t LEDNumber)
 {
 	if ( LEDS_VALID(LEDNumber) )
 	{
-		return GPIO_GetLevel( gpioLEDBits[LEDS_INDEX(LEDNumber)].pinPort, gpioLEDBits[LEDS_INDEX(LEDNumber)].pinNumber );
+		return GPIO_GetLevel(  pin_config[LEDNumber].gpioPort, pin_config[LEDNumber].gpioNumber );
 	}
 	return false;
 }
@@ -62,6 +45,7 @@ void ciaaLED_Toggle(uint8_t LEDNumber)
 {
 	if ( LEDS_VALID(LEDNumber) )
 	{
-		ciaaLED_Set( LEDS_INDEX(LEDNumber), !ciaaLED_Test(LEDS_INDEX(LEDNumber)) );
+		ciaaLED_Set( LEDNumber, !ciaaLED_Test( LEDNumber ) );
 	}
 }
+

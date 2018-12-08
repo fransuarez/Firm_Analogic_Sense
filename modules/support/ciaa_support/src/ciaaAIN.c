@@ -5,26 +5,30 @@
  *      Author: fran
  */
 
-#include "ciaaGPIO_def.h"
 #include "api_ADC.h"
-
 #include "temperaturaMath.h"
 
-// *************************************************************************************************
-
-#define AIN_FUNC_WIND	( 0 )
-#define AIN_FUNC_INTEGER ( 1 )
-
-#define MASK_ENABLE		( 0x01 )
-
-#define ADC_INDEX_RENEW(X) (((ADC_REGISTERS-1) <= X)? 0: X+1)
-#define ADC_INDEX_PREVI(X) ((0 < X)? (X-1): (ADC_REGISTERS-1))
-
-#define SET_ENABLE(X,V)	( (TRUE==V)? (X=MASK_ENABLE): X=(~MASK_ENABLE) )
-#define GET_ENABLE(X)	( (MASK_ENABLE & X)? TRUE: FALSE )
+#include "ciaaAIN.h"
+#include "ciaaPORT.h"
+#include "ciaaGPIO_def.h"
 
 // *************************************************************************************************
+#define ADC_REGISTERS		( 10 )
+#define AIN_FUNC_WIND		( 0 )
+#define AIN_FUNC_INTEGER 	( 1 )
+#define AINP_INDEX(X)		( X-AIN_1 )
 
+#define MASK_ENABLE			( 0x01 )
+
+#define ADC_INDEX_RENEW(X) 	(((ADC_REGISTERS-1) <= X)? 0: X+1)
+#define ADC_INDEX_PREVI(X) 	((0 < X)? (X-1): (ADC_REGISTERS-1))
+
+#define SET_ENABLE(X,V)		( (TRUE==V)? (X=MASK_ENABLE): X=(~MASK_ENABLE) )
+#define GET_ENABLE(X)		( (MASK_ENABLE & X)? TRUE: FALSE )
+
+
+
+// *************************************************************************************************
 typedef struct _conversor_params
 {
 	uint16_t max;		// Valor maximo posible > ADC_COTA_SUP
@@ -66,7 +70,6 @@ typedef struct _analog_register
 
 } regAnInp_t;
 
-
 // *************************************************************************************************
 static uint8_t convVoltTermocuple (convParm_t* );
 static uint8_t convVoltThermistor (convParm_t* );
@@ -76,7 +79,7 @@ static uint8_t convSigWaterLevel (convParm_t* );
 
 // *************************************************************************************************
 static temp_t actualTemp=25;
-static analog_t adcSatus[ADC_INPUTS];
+static analog_t adcSatus[ADC_TOTAL];
 
 static sensDef_t sensor_descript[]=
 {
@@ -87,7 +90,7 @@ static sensDef_t sensor_descript[]=
 	{ .name= WATER_LEVEL	, .unit_input=mAMPERS, .unit_output=mMETERS	, .converter= convSigAmperimeter 	}
 };
 
-static regAnInp_t analogInputs[ADC_INPUTS]=
+static regAnInp_t analogInputs[ADC_TOTAL]=
 {
 	{	.enable			= TRUE,
 		.gpio			= AIN_1,
@@ -129,42 +132,6 @@ static uint8_t id_calib=2;
 #define FORZAR_RECALIBRACION_TERMISTOR() ( coef_thermistor.C=0 )
 
 // *************************************************************************************************
-
-/*
-static uint8_t proccWindow(void * data)
-{
-	regAnInp_t* reg= (regAnInp_t*) data;
-	uint16_t  value= reg->state->values[reg->state->last];
-	uint8_t retval=0;
-
-	if( (reg->min)>=value )
-	{
-		retval= AIN_LEVEL_INF;
-	}
-	else if( (reg->max)<value )
-	{
-		retval= AIN_LEVEL_SUP;
-	}
-
-	return retval;
-}
-
-static uint8_t proccInteger(void * data)
-{
-	regAnInp_t* reg= (regAnInp_t*) data;
-	uint16_t  value= reg->state->values[reg->state->last];
-	uint8_t retval=0;
-
-	reg->state->acum += value;
-
-	if( (reg->max)<(reg->state->acum) )
-	{
-		retval= AIN_LEVEL_SUP;		// Devuelve el estado de alarma
-	}
-
-	return retval;
-}
-*/
 static void _insertValue (analog_t * reg, uint16_t value)
 {
 	uint8_t pos= reg->last;
@@ -213,7 +180,7 @@ static void _completeReport (repAnStat_t * report, uint16_t* stat, uint8_t index
 	}
 }
 
-
+// *************************************************************************************************
 static uint8_t convVoltTermocuple (convParm_t* argum)
 {
 	uint8_t retval= 0;
@@ -299,8 +266,6 @@ static uint8_t convSigWaterLevel (convParm_t* argum)
 	return retval;
 }
 
-
-
 // **********************************************************************************
 void ciaaAIN_Init(void)
 {/*
@@ -371,13 +336,13 @@ uint8_t ciaaAIN_Config (uint16_t val_1, uint16_t val_2, uint8_t mode, uint8_t id
 uint16_t ciaaAIN_Update (repAnStat_t * report)
 {
 	uint16_t* values;
-	uint16_t retval=0;
+	uint16_t statusAin=0;
 	uint8_t i;
 	uint8_t retaux;
 
 	values= ADC_refresh();
 
-	for (i = 0; i < ADC_INPUTS; ++i)
+	for (i = 0; i < ADC_TOTAL; ++i)
 	{
 		if( GET_ENABLE( analogInputs[i].enable ))
 		{
@@ -386,18 +351,18 @@ uint16_t ciaaAIN_Update (repAnStat_t * report)
 			analogInputs[i].calc_values.inp_1= values[i];
 			retaux= analogInputs[i].sens_type->converter( &analogInputs[i].calc_values );
 
-			_completeReport( (report+i), &retval, i, retaux );
+			_completeReport( (report+i), &statusAin, i, retaux );
 
 		}
 	}
-	return retval;
+	return statusAin;
 }
 
 void ciaaAIN_Reset (void)
 {
 	uint8_t i;
 
-	for (i = 0; i < ADC_INPUTS; ++i)
+	for (i = 0; i < ADC_TOTAL; ++i)
 	{
 		if( GET_ENABLE( analogInputs[i].enable ))
 		{
@@ -408,3 +373,38 @@ void ciaaAIN_Reset (void)
 	}
 }
 
+/*
+static uint8_t proccWindow(void * data)
+{
+	regAnInp_t* reg= (regAnInp_t*) data;
+	uint16_t  value= reg->state->values[reg->state->last];
+	uint8_t retval=0;
+
+	if( (reg->min)>=value )
+	{
+		retval= AIN_LEVEL_INF;
+	}
+	else if( (reg->max)<value )
+	{
+		retval= AIN_LEVEL_SUP;
+	}
+
+	return retval;
+}
+
+static uint8_t proccInteger(void * data)
+{
+	regAnInp_t* reg= (regAnInp_t*) data;
+	uint16_t  value= reg->state->values[reg->state->last];
+	uint8_t retval=0;
+
+	reg->state->acum += value;
+
+	if( (reg->max)<(reg->state->acum) )
+	{
+		retval= AIN_LEVEL_SUP;		// Devuelve el estado de alarma
+	}
+
+	return retval;
+}
+*/

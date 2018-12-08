@@ -17,9 +17,6 @@
 
 #include "auxiliar_gpios_def.h"
 
-#include "inOutManager.h"
-#include "terminalManager.h"
-#include "filesManager.h"
 
 #define  TIMEOUT_MUTEX_CONSOLA	(( TickType_t ) 10		)
 #define  TIMEOUT_MUTEX_INPUT	(( TickType_t ) 10		)
@@ -27,7 +24,7 @@
 #define  TIMEOUT_QUEUE_OUTPUT 	(( TickType_t ) 2000	) // antes tenia portMAX_DELAY
 #define  TIMEOUT_QUEUE_MSG_INP 	(( TickType_t ) 2		)
 #define  TIMEOUT_QUEUE_MSG_OUT 	(( TickType_t ) 500		)
-#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t ) 800	)
+#define  TIMEOUT_QUEUE_LOG_INP 	(( TickType_t ) 800		)
 #define  TIMEOUT_QUEUE_LOG_OUT 	(( TickType_t ) 500		)
 
 // ------------------------------------------------------------------------------------
@@ -43,11 +40,6 @@
 #define  LIBERAR_SEMAFORO(X)	( pdTRUE == xSemaphoreGive(X) )
 
 // -------------------- Definiciones tarea 1  ---------------------
-#define  TASK_N1				taskControlOutputs
-#define  TASK_N1_DECRIPT		"DIGITAL Outputs Driver Task."
-// Con esta cantidad de stack le quedan libres 101 Bytes. Le sobran < 1*STACK_SIZE= 128
-#define  TASK_N1_STACK			(configMINIMAL_STACK_SIZE*2)
-#define  TASK_N1_PRIORITY		tskIDLE_PRIORITY+2
 #define  TASK_N1_HANDLER		pxCreatedTask1
 #define  TASK_N1_ID_STACK		0
 
@@ -60,47 +52,32 @@
 #define  MGR_OUTPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 2  ---------------------
-#define  TASK_N2				taskControlInputs
-#define  TASK_N2_DECRIPT		"DIG/AN Inputs Driver Task."
-// Con esta cantidad de stack le quedan libres 79 Bytes. Le sobran < 1*STACK_SIZE =128
-#define  TASK_N2_STACK			(configMINIMAL_STACK_SIZE*2)
-#define  TASK_N2_PRIORITY		tskIDLE_PRIORITY+2
 #define  TASK_N2_HANDLER		pxCreatedTask2
 #define  TASK_N2_ID_STACK		1
 
 #define  MGR_INPUT_ID_STACK		TASK_N2_ID_STACK
 #define  MGR_INPUT_HANDLER 		TASK_N2_HANDLER
 #define  MGR_INPUT_DELAY 		((TickType_t) 50)
-#define  MGR_INPUT_MUTEX		mutexGpioReg
 
+#define  MGR_INPUT_MUTEX		mutexGpioReg
 #define  MGR_INPUT_QUEUE		queueKeyPad
 #define  MGR_INPUT_QUEUE_SIZE	sizeof(dInputQueue_t)
 #define  MGR_INPUT_QUEUE_LENGT	2
 
 // -------------------- Definiciones tarea 3  ---------------------
-#define  TASK_N3				taskTerminal
-#define  TASK_N3_DECRIPT		"Terminal Shell Task."
-// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
-#define  TASK_N3_STACK			(configMINIMAL_STACK_SIZE*4)
-#define  TASK_N3_PRIORITY		tskIDLE_PRIORITY+1
 #define  TASK_N3_HANDLER		pxCreatedTask3
 #define  TASK_N3_ID_STACK		2
 
 #define  MGR_TERMINAL_ID_STACK	TASK_N3_ID_STACK
 #define  MGR_TERMINAL_HANDLER 	TASK_N3_HANDLER
 #define  MGR_TERMINAL_DELAY 	((TickType_t) 10)
-#define  MGR_TERMINAL_MUTEX		mutexConsola
 
+#define  MGR_TERMINAL_MUTEX		mutexConsola
 #define  MGR_TERMINAL_QUEUE		queueTermMsg
 #define  MGR_TERMINAL_QUEUE_SIZ	sizeof(terMsg_t)
 #define  MGR_TERMINAL_QUEUE_LEN	4
 
-// -------------------- Definiciones tarea 4  ---------------------
-#define  TASK_N4				dataLog_Service
-#define  TASK_N4_DECRIPT		"Logs Eeprom Driver Task."
-// Con esta cantidad de stack le quedan libres 119 Bytes x ahora. Le sobran < 1*STACK_SIZE =128
-#define  TASK_N4_STACK			(configMINIMAL_STACK_SIZE*2)
-#define  TASK_N4_PRIORITY		tskIDLE_PRIORITY+1
+// -------------------- Definiciones tarea 3  ---------------------
 #define  TASK_N4_HANDLER		pxCreatedTask4
 #define  TASK_N4_ID_STACK		3
 
@@ -108,9 +85,8 @@
 #define  MGR_DATALOG_HANDLER 	TASK_N4_HANDLER
 #define  MGR_DATALOG_DELAY 		((TickType_t) 10)
 #define  MGR_DATALOG_PRINT_REG 	((TickType_t) 1000)
+
 #define  MGR_DATALOG_MUTEX		mutexBuffRedLog
-
-
 #define  MGR_DATALOG_QUEUE		queueDataLog
 #define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t )
 #define  MGR_DATALOG_QUEUE_LENGT 2
@@ -118,14 +94,9 @@
 #define  TIMER_1_OBJ			timerInput1
 #define  TIMER_2_OBJ			timerInput2
 #define  TIMER_3_OBJ			timerInput3
-
-#define  TIMER_1_NAME			"Envio Reportes Timer"
-#define  TIMER_1_PER			( 1000 / portTICK_PERIOD_MS )
-#define  TIMER_1_IDn			(void *) 1
-#define  TIMER_1_CALLBACK		timerMonitCallback
+#define  TIMER_4_OBJ			timerInput4
 
 
 // ------------------------------------------------------------------------------------
-int tasks_create (void );
 
 #endif /* MODULES_SUPPORT_TASKSERVICES_INC_SERVICES_CONFIG_H_ */

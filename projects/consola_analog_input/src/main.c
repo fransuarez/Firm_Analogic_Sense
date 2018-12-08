@@ -55,24 +55,40 @@
 
 
 /*==================[internal functions declaration]=========================*/
-static void initHardware(void)
+/*
+static void initHardware (void)
 {
     SystemCoreClockUpdate();
 
     //Board_Init();
 
 }
-
+*/
 int main (void)
 {
+	//initHardware();
+    SystemCoreClockUpdate();
 
-	if( !tasks_create() )
+	if( queues_create() )
 	{
-		initHardware();
-		vTaskStartScheduler();
+		// Si llega aca es porque hubo algun error:
+		while (1);
 	}
 
-	// Si llega aca es porque hubo algun error:
+	if( timers_create() )
+	{
+		// Si llega aca es porque hubo algun error:
+		while (1);
+	}
+
+	if( tasks_create() )
+	{
+		// Si llega aca es porque hubo algun error:
+		while (1);
+	}
+
+	vTaskStartScheduler();
+	// Nunca deberia llegar aca:
 	while (1);
 }
 
