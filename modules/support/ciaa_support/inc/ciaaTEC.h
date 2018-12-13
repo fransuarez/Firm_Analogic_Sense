@@ -45,7 +45,12 @@ tecReg_t ciaaTEC_Level_ISR 	(perif_t);
 
 int ciaaGPIO_EnablePin (perif_t gpio_id, int mode);
 int ciaaGPIO_EnableIRQ (perif_t gpio_id, irqChId_t irq_id);
-int ciaaGPIO_GetLevel (perif_t inp_id, irqChId_t irq_id);
+int ciaaGPIO_GetLevelIRQ (perif_t inp_id, irqChId_t irq_id);
+
+// Aplican si la GPIO funciona como salida:
+void ciaaGPIO_SetLevel (perif_t inp_id, uint8_t value);
+void ciaaGPIO_Toggle (perif_t gpio_id);
+int ciaaGPIO_GetLevel (perif_t gpio_id);
 
 
 #endif /* MODULES_LPC4337_M4_CIAA_SUPORT_INC_CIAAKEY_H_ */

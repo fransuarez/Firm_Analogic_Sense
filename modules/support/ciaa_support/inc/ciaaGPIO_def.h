@@ -13,8 +13,8 @@
 //#include "ciaaPORT.h"
 
 #define SENSOR_VALID(X) 	( (THERMISTOR<=X) && (WATER_LEVEL>=X) )
-#define EXT_INPUTS_TOTAL	( SEN_ALARMA-TERMOCUPLE )
-#define EXT_OUTPUTS_TOTAL	( RELAY_ESTUFA-SL_MODE_FUNCTION )
+#define EXT_INPUTS_TOTAL	( SL_MODE_FUNCTION-TERMOCUPLE+1 )
+#define EXT_OUTPUTS_TOTAL	( SIGNAL_MODE-RELAY_VALVE+1 )
 
 // **********************************************************************
 // No modificar el orden!!!!
@@ -28,19 +28,25 @@ typedef enum _external_objects_types
 	WATER_LEVEL,
 
 	SW_START_STOP,
-	SW_INTERRUPT,
-
 	SL_OBJECT_DETECT,
 	SL_MODE_FUNCTION,
 
 // SALIDAS *********************
+	RELAY_VALVE,
+	RELAY_HEATER,
 
-	SEN_ALARMA,
-	SEN_IN_PROCCESS,
-	SEN_STOP,
+	ALARM_TEMPER,
+	ALARM_LEVEL,
+	ALARM_CONDUCT,
+	ALARM_INTERRUPT,
+	ALARM_OVER_TIME,
 
-	RELAY_VALV,
-	RELAY_ESTUFA
+	SIGNAL_PROCCESS,
+	SIGNAL_COMPLETE,
+	SIGNAL_MODE,
+
+// AUXILIARES *****************
+	NONE=99,
 
 } externId_t;
 

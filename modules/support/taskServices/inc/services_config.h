@@ -49,7 +49,7 @@
 
 #define  MGR_OUTPUT_QUEUE		queueSigLed
 #define  MGR_OUTPUT_QUEUE_SIZE	sizeof(dOutputQueue_t)
-#define  MGR_OUTPUT_QUEUE_LENGT	2
+#define  MGR_OUTPUT_QUEUE_LENGT	10
 
 // -------------------- Definiciones tarea 2  ---------------------
 #define  TASK_N2_HANDLER		pxCreatedTask2
@@ -62,11 +62,10 @@
 #define  MGR_INPUT_MUTEX		mutexGpioReg
 #define  MGR_INPUT_QUEUE		queueKeyPad
 #define  MGR_INPUT_QUEUE_SIZE	sizeof(dInputQueue_t)
-#define  MGR_INPUT_QUEUE_LENGT	2
-
+#define  MGR_INPUT_QUEUE_LENGT	10
 // -------------------- Definiciones tarea 3  ---------------------
 #define  TASK_N3_HANDLER		pxCreatedTask3
-#define  TASK_N3_ID_STACK		2
+#define  TASK_N3_ID_STACK		6
 
 #define  MGR_TERMINAL_ID_STACK	TASK_N3_ID_STACK
 #define  MGR_TERMINAL_HANDLER 	TASK_N3_HANDLER
@@ -79,7 +78,7 @@
 
 // -------------------- Definiciones tarea 3  ---------------------
 #define  TASK_N4_HANDLER		pxCreatedTask4
-#define  TASK_N4_ID_STACK		3
+#define  TASK_N4_ID_STACK		4
 
 #define  MGR_DATALOG_ID_STACK	TASK_N4_ID_STACK
 #define  MGR_DATALOG_HANDLER 	TASK_N4_HANDLER
@@ -89,13 +88,19 @@
 #define  MGR_DATALOG_MUTEX		mutexBuffRedLog
 #define  MGR_DATALOG_QUEUE		queueDataLog
 #define  MGR_DATALOG_QUEUE_SIZE	sizeof(dlogPack_t )
-#define  MGR_DATALOG_QUEUE_LENGT 2
+#define  MGR_DATALOG_QUEUE_LENGT 4
+
 // ------------------------------------------------------------------------------------
 #define  TIMER_1_OBJ			timerInput1
 #define  TIMER_2_OBJ			timerInput2
 #define  TIMER_3_OBJ			timerInput3
 #define  TIMER_4_OBJ			timerInput4
 
+#define  TIMER_5_OBJ			timerInput5
+#define  TIMER_6_OBJ			timerInput6
+#define  TIMER_7_OBJ			timerInput7
+#define  TIMER_8_OBJ			timerInput8
+#define  TIMER_9_OBJ			timerInput9
 
 // ------------------------------------------------------------------------------------
 

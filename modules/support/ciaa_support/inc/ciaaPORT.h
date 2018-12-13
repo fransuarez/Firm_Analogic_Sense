@@ -28,7 +28,7 @@
 #define TECL_VALID(X) 		( (TECL1<=X) && (TECL4>=X) )
 #define LEDS_VALID(X) 		( (LED_R<=X) && (LED_3>=X) )
 #define AINP_VALID(X) 		( (AIN_1<=X) && (AIN_3>=X) )
-#define GPIO_VALID(X) 		( (GPIO_0<=X) && (LCD_4>=X) )
+#define GPIO_VALID(X) 		( (GPIO_0<=X) && (SPI_MOSI>=X) )
 
 #define IRQ_VALID_CH(X)		( IRQ_GPIO_CH0<=X && IRQ_GPIO_CH7>=X )
 #define MODE_VALID(X)		( GPIO_OUT_MODE==X || GPIO_INP_MODE==X )
@@ -64,29 +64,29 @@ typedef enum _perifericos_edu_ciaa
 	TECL4,
 
 	GPIO_0,
-	GPIO_1,
+	GPIO_1, // SW 2
 	GPIO_2,
 	GPIO_3,
 	GPIO_4,
-	GPIO_5,
+	GPIO_5, // SW 3
 	GPIO_6,
 	GPIO_7,
 	GPIO_8,
 
-	LCD_EN,
-	LCD_RS,
-	LCD_1,
+	LCD_EN, // LED AUX 1
+	LCD_RS, // LED AUX 4
+	LCD_1,  // SW 1
 	LCD_2,
-	LCD_3,
-	LCD_4,
+	LCD_3,  // LED AUX 3
+	LCD_4,  // LED AUX 5
 
 	SPI_MISO,
 	SPI_SCK,
-	SPI_MOSI,
+	SPI_MOSI, // LED AUX 2
 	TECL1_4,
-	AIN_1,
-	AIN_2,
-	AIN_3,
+	AIN_1, // CH 1
+	AIN_2, // CH 2
+	AIN_3, // CH 3
 
 } perif_t; //size= 1 byte
 

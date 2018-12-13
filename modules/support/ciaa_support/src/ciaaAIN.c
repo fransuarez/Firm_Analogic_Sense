@@ -89,26 +89,28 @@ static sensDef_t sensor_descript[]=
 	{ .name= CONDUCTIMETER	, .unit_input=uFARADS, .unit_output=mgSQRMTR, .converter= convSigAmperimeter 	},
 	{ .name= WATER_LEVEL	, .unit_input=mAMPERS, .unit_output=mMETERS	, .converter= convSigAmperimeter 	}
 };
-
+#define DEF_AIN_SENS1	AIN_2
+#define DEF_AIN_SENS2	AIN_1
+#define DEF_AIN_SENS3	AIN_3
 static regAnInp_t analogInputs[ADC_TOTAL]=
 {
+	{ 	.enable			=TRUE,
+		.gpio			= DEF_AIN_SENS2,
+		.state			= &adcSatus[ AINP_INDEX(DEF_AIN_SENS2) ],
+		.sens_type		= &sensor_descript[TERMOCUPLE],
+		.calc_values.min= 0,
+		.calc_values.max= 5000	// Valor max acotado de la tabla en milivolts
+	},
 	{	.enable			= TRUE,
-		.gpio			= AIN_1,
-		.state			= &adcSatus[ AINP_INDEX(AIN_1) ],
+		.gpio			= DEF_AIN_SENS1,
+		.state			= &adcSatus[ AINP_INDEX(DEF_AIN_SENS1) ],
 		.sens_type		= &sensor_descript[THERMISTOR],
 		.calc_values.min= 10,
 		.calc_values.max= 50000	// Valor de 50Kohms limitacion del posible modelo fisico
 	},
 	{ 	.enable			=TRUE,
-		.gpio			= AIN_2,
-		.state			= &adcSatus[ AINP_INDEX(AIN_2) ],
-		.sens_type		= &sensor_descript[TERMOCUPLE],
-		.calc_values.min= 0,
-		.calc_values.max= 5000	// Valor max acotado de la tabla en milivolts
-	},
-	{ 	.enable			=TRUE,
-		.gpio			= AIN_3,
-		.state			= &adcSatus[ AINP_INDEX(AIN_3) ],
+		.gpio			= DEF_AIN_SENS3,
+		.state			= &adcSatus[ AINP_INDEX(DEF_AIN_SENS3) ],
 		.sens_type		= &sensor_descript[CONDUCTIMETER],
 		.calc_values.min= 0,
 		.calc_values.max= 100
@@ -228,12 +230,13 @@ static uint8_t convVoltThermistor (convParm_t* argum)
 			}
 			id_calib=0;
 		}
+		/* FIXME esto debo hacerlo en otra funcion que recalibre.
 		else
 		{
 			rest_calib[id_calib]= (resi_t)(argum->inp_1);
 			temp_calib[id_calib]= (temp_t)(argum->inp_2);
 			id_calib++;
-		}
+		}*/
 	}
 	return retval;
 }

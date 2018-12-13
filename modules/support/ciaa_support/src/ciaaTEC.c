@@ -77,7 +77,7 @@ void ciaaTEC_EnableIRQ (perif_t key_id, irqChId_t irq_id)
 		teclStatus[TECL_INDEX(key_id)].idIRQ= irq_id;
 		teclStatus[TECL_INDEX(key_id)].enableIRQ= TRUE;
 
-		GPIO_InputIRQEnable(  pin_config[key_id].gpioPort, pin_config[key_id].gpioNumber, irq_id );
+		GPIO_InputIRQEnable(  pin_config[key_id].gpioPort, pin_config[key_id].gpioNumber, irq_id, IRQ_MODE_PULSADOR );
 	}
 }
 
@@ -189,14 +189,16 @@ tecReg_t ciaaTEC_Level_ISR (perif_t key_id)
 }
 
 //*****************************************************************************+
+#define GPIO_TYPE(X)	( GPIO_VALID(X) || LEDS_VALID(X) )
+
 int ciaaGPIO_EnablePin (perif_t gpio_id, int mode)
 {
 	int retval= 0;
 
-	if( GPIO_VALID(gpio_id) && MODE_VALID(mode))
+	if( GPIO_TYPE(gpio_id)  && MODE_VALID(mode) )
 	{
 		GPIO_EnablePin( pin_config[gpio_id].pinPort, pin_config[gpio_id].pinNumber, pin_config[gpio_id].function,
-						pin_config[gpio_id].gpioPort, pin_config[gpio_id].gpioPort, mode );
+						pin_config[gpio_id].gpioPort, pin_config[gpio_id].gpioNumber, mode );
 		retval=1;
 	}
 	return retval;
@@ -206,25 +208,60 @@ int ciaaGPIO_EnableIRQ (perif_t gpio_id, irqChId_t irq_id)
 {
 	int retval= 0;
 
-	if( GPIO_VALID(gpio_id) && IRQ_VALID_CH(irq_id) )
+	if( GPIO_TYPE(gpio_id) && IRQ_VALID_CH(irq_id) )
 	{
-		GPIO_InputIRQEnable( pin_config[gpio_id].gpioPort, pin_config[gpio_id].gpioNumber, irq_id );
+		GPIO_InputIRQEnable( pin_config[gpio_id].gpioPort, pin_config[gpio_id].gpioNumber, irq_id, IRQ_MODE_LEVEL);
 		retval=1;
 	}
 	return retval;
 }
 
-int ciaaGPIO_GetLevel (perif_t inp_id, irqChId_t irq_id)
+int ciaaGPIO_GetLevelIRQ (perif_t inp_id, irqChId_t irq_id)
 {
 	int retval= GPIO_HIGH_LEVEL;
 
-	if( GPIO_VALID(inp_id)  && IRQ_VALID_CH(irq_id) )
+	if( GPIO_TYPE(inp_id)  && IRQ_VALID_CH(irq_id) )
 	{
 		if( GPIO_InputIRQHandler( irq_id ) )
 		{
-			retval = GPIO_LOW_LEVEL;
+			//retval = GPIO_LOW_LEVEL;
+		}
+		//if( GPIO_GetLevel(  pin_config[inp_id].gpioPort, pin_config[inp_id].gpioNumber ))
+		{
+			retval= GPIO_GetLevel(  pin_config[inp_id].gpioPort, pin_config[inp_id].gpioNumber );
 		}
 	}
 	return retval;
-
 }
+
+void ciaaGPIO_SetLevel (perif_t inp_id, uint8_t value)
+{
+	if ( GPIO_TYPE(inp_id)  )
+	{
+		GPIO_SetLevel( pin_config[inp_id].gpioPort, pin_config[inp_id].gpioNumber, value );
+	}
+}
+
+int ciaaGPIO_GetLevel (perif_t inp_id)
+{
+	int retval= GPIO_HIGH_LEVEL;
+
+	if ( GPIO_TYPE(inp_id) )
+	{
+		if( GPIO_GetLevel(  pin_config[inp_id].gpioPort, pin_config[inp_id].gpioNumber ))
+		{
+			retval= GPIO_LOW_LEVEL;
+		}
+	}
+	return retval;
+}
+
+void ciaaGPIO_Toggle (perif_t inp_id)
+{
+	if ( GPIO_TYPE(inp_id) )
+	{
+		ciaaGPIO_SetLevel( inp_id, !ciaaGPIO_GetLevel( inp_id ) );
+	}
+}
+
+

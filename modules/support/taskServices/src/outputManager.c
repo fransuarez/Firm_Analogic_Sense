@@ -12,6 +12,7 @@
 #include "ciaaPORT.h"
 #include "ciaaGPIO_def.h"
 #include "ciaaLED.h"
+#include "ciaaTEC.h"  // Esta lib despues la voy a reemplazar por ciaaGPIO.h
 
 
 #define SIZE_BUFF_TERM		( 32 )
@@ -54,8 +55,6 @@ typedef struct periferics_register
 	unit_t		unit;
 	shTime_t	time_value;
 	int32_t		value;
-	int32_t		smt_max;
-	int32_t		smt_min;
 
 } perReg_t;
 
@@ -76,37 +75,59 @@ static GpioReg_t 		regToLog[REG_OPR_LOG];
 static dlogPack_t 		dataToLog = { .cmd= writePage, .data= regToLog };
 static RTC_t hdRTC;
 
-
 static perInfo_t nombOutputs[EXT_OUTPUTS_TOTAL]=
 {
-	{ .id= TERMOCUPLE, .name= "T_CUPLA", .unit= "CELSIUS" },
-	{ .id= THERMISTOR, .name= "T_NTC" , .unit= "CELSIUS" },
-	{ .id= AMPERIMETER, .name= "C_AMP", .unit= "AMPERS"  },
-	{ .id= CONDUCTIMETER, .name= "Q_ION", .unit= "mgSQRMTR" },
-	{ .id= WATER_LEVEL, .name= "L_AGUA", .unit= "cMETERS" }
+	{ .id= RELAY_VALVE		, .name= "R_VALVE"	, .unit= "LEVEL" 	},
+	{ .id= RELAY_HEATER		, .name= "R_HEATER" , .unit= "LEVEL" 	},
+
+	{ .id= ALARM_TEMPER		, .name= "A_TEMP"	, .unit= "LEVEL"  	},
+	{ .id= ALARM_LEVEL		, .name= "A_LEVEL"	, .unit= "LEVEL" 	},
+	{ .id= ALARM_CONDUCT	, .name= "A_COND"	, .unit= "LEVEL" 	},
+	{ .id= ALARM_INTERRUPT	, .name= "A_INTERR"	, .unit= "LEVEL" 	},
+	{ .id= ALARM_OVER_TIME	, .name= "A_OVER_TIME" , .unit= "LEVEL" },
+
+	{ .id= SIGNAL_PROCCESS	, .name= "S_PROCC"	, .unit= "LEVEL"  	},
+	{ .id= SIGNAL_COMPLETE	, .name= "S_COMPL"	, .unit= "LEVEL" 	},
+	{ .id= SIGNAL_MODE		, .name= "S_MODE"	, .unit= "LEVEL" 	}
 };
 
 static perReg_t stateOutputs[EXT_OUTPUTS_TOTAL]=
 {
-	{
-		.name= SEN_ALARMA, 		 .id_gpio= LED_R, .enable= TRUE, .unit= LEVEL,
-	},
-	{
-		.name= SEN_IN_PROCCESS,  .id_gpio= LED_1, .enable= TRUE, .unit= LEVEL,
-	},
-	{
-		.name= SEN_STOP, 	 .id_gpio= LED_1, .enable= TRUE, .unit= LEVEL,
-	},
-	{
-		.name= RELAY_VALV, 	 .id_gpio= LED_1, .enable= FALSE, .unit= LEVEL,
-	},
-	{
-		.name= RELAY_ESTUFA, .id_gpio= GPIO_0, .enable= FALSE, .unit= LEVEL,
-	}
+	{	.name= RELAY_VALVE		, .id_gpio= SPI_MOSI, .enable= TRUE, .unit= LEVEL  	},
+	{ 	.name= RELAY_HEATER		, .id_gpio= LCD_RS, .enable= TRUE, .unit= LEVEL		},
+
+ 	{ 	.name= ALARM_TEMPER		, .id_gpio= LCD_4, .enable= TRUE, .unit= LEVEL	},
+	{	.name= ALARM_LEVEL		, .id_gpio= LCD_3, .enable= TRUE, .unit= LEVEL	},
+	{	.name= ALARM_CONDUCT	, .id_gpio= LCD_EN, .enable= TRUE, .unit= LEVEL},
+	{	.name= ALARM_INTERRUPT	, .id_gpio= LED_R, .enable= TRUE, .unit= LEVEL  },
+	{ 	.name= ALARM_OVER_TIME	, .id_gpio= LED_1, .enable= TRUE, .unit= LEVEL	},
+
+ 	{ 	.name= SIGNAL_PROCCESS	, .id_gpio= LED_2, .enable= TRUE, .unit= LEVEL	},
+	{	.name= SIGNAL_COMPLETE	, .id_gpio= LED_3, .enable= TRUE, .unit= LEVEL	},
+	{	.name= SIGNAL_MODE		, .id_gpio= LCD_2, .enable= TRUE, .unit= LEVEL},
+};
+#define CANT_AUX_LEDS 	6
+#define OUTPUT_GET_INDEX(X)	( X-RELAY_VALVE )
+static perif_t testOutput[CANT_AUX_LEDS]=
+{
+	LCD_EN, SPI_MOSI, LCD_3, LCD_RS, LCD_4, LCD_2
 };
 
 //**************************************************************************************************
 
+static void taskOutputs_InitPin (void)
+{
+	int i;
+	ciaaLED_Init();
+
+	for (i = 0; i < CANT_AUX_LEDS; ++i)
+	{
+		ciaaGPIO_EnablePin( testOutput[i], GPIO_OUT_MODE );
+		ciaaGPIO_SetLevel( testOutput[i], GPIO_LOW_LEVEL);
+
+	}
+	//xTimerStart( TIMER_TECLAS_INIT, 2 );
+}
 // TODO agregarla alguna libreria de manejo de tiempos. Lo unico que deberia de pasarle extra es 4' y 15".
 static uint8_t calculateDiffTime (uint8_t initMin, uint8_t initSec, uint8_t endMin, uint8_t endSec)
 {
@@ -197,7 +218,7 @@ static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
 static uint8_t updateDigOutput (dInOutQueue_t * regDigital)
 {
 	uint8_t retval= RET_VAL_OK;
-	int i= regDigital->data.name;
+	int i= OUTPUT_GET_INDEX(regDigital->data.name);
 
 	if( RTC_GET_IN_TIMED() )
 	{
@@ -212,11 +233,17 @@ static uint8_t updateDigOutput (dInOutQueue_t * regDigital)
 	stateOutputs[i].value= regDigital->data.value;
 
 	// Si coiniciden los registros entonces actualiza el valor leido.
+	// FIXME esto debe ir en la funcion de configuracion. A lo sumo debe devolver error.
 	if( (stateOutputs[i].name != regDigital->data.name) || (LEVEL != stateOutputs[i].unit) )
 	{
 		stateOutputs[i].name = regDigital->data.name;
 		stateOutputs[i].unit = LEVEL;
 		stateOutputs[i].id_gpio = regDigital->gpio;
+	}
+	else
+	{
+		// Es medio pedorro que este acá, lo hago para fines de alguna rutina posterior que lo necesite.
+		regDigital->gpio= stateOutputs[i].id_gpio;
 	}
 
 	return retval;
@@ -248,14 +275,18 @@ void taskControlOutputs (void * a)
 	dOutputQueue_t dataRecLed;
 	uint8_t i;
 
-	ciaaLED_Init();
+	taskOutputs_InitPin();
 
+	// En el caso de alarmas puedo activarles un blinky con un timer.
 	while (1)
 	{
 		if( pdTRUE == xQueueReceive( MGR_OUTPUT_QUEUE, &dataRecLed, TIMEOUT_QUEUE_INPUT ))
 		{
-			if( portOutputLed == dataRecLed.mode )
+			switch (dataRecLed.mode)
 			{
+			case portOutputLed:
+			case portOutputDigital:
+
 				updateDigOutput( &dataRecLed );
 
 				if( RET_VAL_BUFF_FULL & historyRegister( &dataRecLed ) )
@@ -263,25 +294,38 @@ void taskControlOutputs (void * a)
 					xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 				}
 
-				ciaaLED_Set( dataRecLed.gpio, dataRecLed.data.value );
+				ciaaGPIO_SetLevel( dataRecLed.gpio, dataRecLed.data.value );
 
-				sprintf( buffSendTerminal, "[LED_%d= %i uni]\r\n", dataRecLed.gpio, dataRecLed.data.value );
+				sprintf( buffSendTerminal, "[Out:%s  State:%i]\r\n",
+						 nombOutputs[OUTPUT_GET_INDEX(dataRecLed.data.name)].name, dataRecLed.data.value );
 				Terminal_Msg_Normal( &msgToSend, buffSendTerminal );
 				xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
+				/*
+				static uint8_t statLeds=GPIO_LOW_LEVEL;
+
+				for (i = 0; i < CANT_AUX_LEDS; ++i)
+				{
+					ciaaGPIO_SetLevel( testOutput[i], statLeds );
+				}
+				statLeds= ~statLeds;
+				*/
+				break;
+			default:
+				break;
 			}
-/*
+			/*
 			if( historyDigInput( &dataRecLed ) )
 			{
 				xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 			}
-*/
+			 */
 		}
 		else
 		{
-			for(i=LED_R; i<= LED_3; i++)
+			/*for(i=LED_R; i<= LED_3; i++)
 			{
 				ciaaLED_Set( i, FALSE );
-			}
+			}*/
 		}
 
 		//ACTUALIZAR_STACK( MGR_OUTPUT_HANDLER, MGR_OUTPUT_ID_STACK );
