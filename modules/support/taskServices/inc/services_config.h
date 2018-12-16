@@ -102,6 +102,8 @@
 #define  TIMER_8_OBJ			timerInput8
 #define  TIMER_9_OBJ			timerInput9
 
+#define  TIMER_10_OBJ			timerInput10
+
 // ------------------------------------------------------------------------------------
 
 #endif /* MODULES_SUPPORT_TASKSERVICES_INC_SERVICES_CONFIG_H_ */

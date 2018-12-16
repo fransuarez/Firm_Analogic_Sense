@@ -11,10 +11,26 @@
 //#include "chip.h"
 //#include "lpc_types.h"
 //#include "ciaaPORT.h"
+#define GPIO_HIGH_LEVEL		1
+#define GPIO_LOW_LEVEL		0
+#define OUT_STATUS_SET		( GPIO_HIGH_LEVEL )
+#define OUT_STATUS_RESET	( GPIO_LOW_LEVEL )
+
 
 #define SENSOR_VALID(X) 	( (THERMISTOR<=X) && (WATER_LEVEL>=X) )
 #define EXT_INPUTS_TOTAL	( SL_MODE_FUNCTION-TERMOCUPLE+1 )
 #define EXT_OUTPUTS_TOTAL	( SIGNAL_MODE-RELAY_VALVE+1 )
+
+#define EXT_INP_ANG_FIRST	( TERMOCUPLE )
+#define EXT_INP_ANG_LAST	( CONDUCTIMETER )
+
+#define EXT_INP_DIG_FIRST	( WATER_LEVEL )
+#define EXT_INP_DIG_LAST	( SL_MODE_FUNCTION )
+
+#define EXT_OUT_DIG_FIRST	( RELAY_VALVE )
+#define EXT_OUT_DIG_LAST	( SIGNAL_MODE )
+//#define EXT_OUT_ANG_FIRST	(  )
+//#define EXT_OUT_ANG_LAST	(  )
 
 // **********************************************************************
 // No modificar el orden!!!!
@@ -25,8 +41,8 @@ typedef enum _external_objects_types
 	THERMISTOR,
 	AMPERIMETER,
 	CONDUCTIMETER,
-	WATER_LEVEL,
 
+	WATER_LEVEL,
 	SW_START_STOP,
 	SL_OBJECT_DETECT,
 	SL_MODE_FUNCTION,
@@ -39,14 +55,21 @@ typedef enum _external_objects_types
 	ALARM_LEVEL,
 	ALARM_CONDUCT,
 	ALARM_INTERRUPT,
-	ALARM_OVER_TIME,
+	ALARM_TIME,
 
-	SIGNAL_PROCCESS,
+	SIGNAL_START,
 	SIGNAL_COMPLETE,
+	SIGNAL_STOP,
 	SIGNAL_MODE,
 
 // AUXILIARES *****************
-	NONE=99,
+	TIMER_ALARM_TEMP,
+	TIMER_ALARM_LEVEL,
+	TIMER_ALARM_CONDUCT,
+	TIMER_ALARM_INTERRUPT,
+	TIMER_ALARM_TIME,
+	TIMER_PROCCESS_END,
+	NONE,
 
 } externId_t;
 

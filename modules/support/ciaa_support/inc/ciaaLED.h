@@ -14,6 +14,9 @@
 #define FIRSTLED	   2
 #define SELECT_LED(A) (A+FIRSTLED)
 
+#define LED_SET		TRUE
+#define LED_RESET	FALSE
+
 void ciaaLED_Init 	(void);
 
 // API LED

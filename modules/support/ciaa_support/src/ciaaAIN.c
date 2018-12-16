@@ -111,9 +111,9 @@ static regAnInp_t analogInputs[ADC_TOTAL]=
 	{ 	.enable			=TRUE,
 		.gpio			= DEF_AIN_SENS3,
 		.state			= &adcSatus[ AINP_INDEX(DEF_AIN_SENS3) ],
-		.sens_type		= &sensor_descript[CONDUCTIMETER],
+		.sens_type		= &sensor_descript[AMPERIMETER],
 		.calc_values.min= 0,
-		.calc_values.max= 100
+		.calc_values.max= ADC_COTA_SUP
 	}
 };
 
@@ -352,6 +352,7 @@ uint16_t ciaaAIN_Update (repAnStat_t * report)
 			_insertValue( analogInputs[i].state, values[i] );
 			//modifyFlags( retaux, &retval );
 			analogInputs[i].calc_values.inp_1= values[i];
+
 			retaux= analogInputs[i].sens_type->converter( &analogInputs[i].calc_values );
 
 			_completeReport( (report+i), &statusAin, i, retaux );

@@ -9,6 +9,7 @@
 #define MODULES_SUPPORT_SENSADOANALOGICO_
 
 //#include "ciaaGPIO_def.h"
+#include "lpc_types.h"
 
 #define REG_OPR_LOG	32	// Numero de registros por operacion de log. Equivale a una pagina de memoria con 32 words.
 
@@ -106,6 +107,7 @@ typedef struct _data_input_queue
 	};
 
 } dInOutQueue_t; //size= 8 bytes
+
 
 typedef dInOutQueue_t dOutputQueue_t;
 typedef dInOutQueue_t dInputQueue_t;

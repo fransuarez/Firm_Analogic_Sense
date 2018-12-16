@@ -10,26 +10,29 @@
 #include "lpc_types.h"
 #include "api_GPIO.h"
 
-#include "ciaaPORT.h"
+//#include "ciaaPORT.h"
 #include "ciaaTEC.h"
 
 // ------ Private constants -----------------------------------
 #define TECL_INDEX(X)	( X-TECL1 )
+#define GPIO_INDEX(X)	( X-GPIO_0 )
 
 // ------ Public variable ------------------------
 typedef struct config_tecl
 {
 	bool		enableIRQ;
-	irqChId_t	idIRQ;
 	bool		enableDebounce;
+	irqChId_t	idIRQ;
 	uint8_t		Test0;
 	uint8_t		Test1;
 	uint8_t		Test2;
 	uint8_t		Test3;
 
-} teclCfg_t;
+} debGPIO_t;
 
-static teclCfg_t teclStatus[TECL_TOTAL];
+static debGPIO_t teclStatus[TECL_TOTAL];
+
+static debGPIO_t gpioStatus[GPIO_TOTAL];
 
 // ------ Public functions  ----------------------------------------
 
@@ -136,10 +139,14 @@ tecReg_t ciaaTEC_DebounStatus (perif_t key_id)
 			(TECL_PUSH == teclStatus[id].Test1) && (TECL_PUSH == teclStatus[id].Test0))
 		{
 			// Flanco de bajada detectado.
-			retval= (1<<id);
+			retval= TECL_PRESSED(id);
+		}
+		else
+		{
+			retval= TECL_RELEASE(id);
 		}
 	}
-	else
+	else if( TECL_ALL == key_id  )
 	{
 		for (id = 0; id < TECL_TOTAL; ++id)
 		{
@@ -154,7 +161,11 @@ tecReg_t ciaaTEC_DebounStatus (perif_t key_id)
 				(TECL_PUSH == teclStatus[id].Test1) && (TECL_PUSH == teclStatus[id].Test0))
 			{
 				// Flanco de bajada detectado.
-				retval |= 1<<id;
+				retval |= TECL_PRESSED(id);
+			}
+			else
+			{
+				retval &= ~TECL_RELEASE(id);
 			}
 		}
 	}
@@ -190,6 +201,7 @@ tecReg_t ciaaTEC_Level_ISR (perif_t key_id)
 
 //*****************************************************************************+
 #define GPIO_TYPE(X)	( GPIO_VALID(X) || LEDS_VALID(X) )
+#define LEDS_RGB(X) 	( (LED_R<=X) && (LED_B>=X) )
 
 int ciaaGPIO_EnablePin (perif_t gpio_id, int mode)
 {
@@ -236,6 +248,17 @@ int ciaaGPIO_GetLevelIRQ (perif_t inp_id, irqChId_t irq_id)
 
 void ciaaGPIO_SetLevel (perif_t inp_id, uint8_t value)
 {
+	int i;
+	if( LEDS_VALID(inp_id) )
+	{
+		if( LEDS_RGB(inp_id) )
+		{
+			for (i = LED_R; i < LED_B; ++i)
+			{
+				GPIO_SetLevel( pin_config[i].gpioPort, pin_config[i].gpioNumber, FALSE );
+			}
+		}
+	}
 	if ( GPIO_TYPE(inp_id)  )
 	{
 		GPIO_SetLevel( pin_config[inp_id].gpioPort, pin_config[inp_id].gpioNumber, value );
@@ -264,4 +287,67 @@ void ciaaGPIO_Toggle (perif_t inp_id)
 	}
 }
 
+debInput_t ciaaGPIO_DebounStatus (perif_t key_id)
+{
+	debInput_t retval= input_state_uninit;
+	uint8_t id;
+
+	if( ! GPIO_VALID(key_id) )
+	{
+		return retval;
+	}
+
+	id= GPIO_INDEX(key_id);
+	if( TRUE == gpioStatus[id].enableDebounce )
+	{
+		// Actualizar muestras
+		gpioStatus[id].Test3 = gpioStatus[id].Test2;
+		gpioStatus[id].Test2 = gpioStatus[id].Test1;
+		gpioStatus[id].Test1 = gpioStatus[id].Test0;
+
+		gpioStatus[id].Test0 = GPIO_GetLevel( pin_config[key_id].gpioPort, pin_config[key_id].gpioNumber );
+
+		if ((GPIO_HIGH_LEVEL == gpioStatus[id].Test3) && (GPIO_HIGH_LEVEL == gpioStatus[id].Test2) &&
+			(GPIO_LOW_LEVEL == gpioStatus[id].Test1) && (GPIO_LOW_LEVEL == gpioStatus[id].Test0))
+		{
+			retval= input_state_low;
+		}
+		else if( (GPIO_LOW_LEVEL == gpioStatus[id].Test3) && (GPIO_LOW_LEVEL == gpioStatus[id].Test2) &&
+			(GPIO_HIGH_LEVEL == gpioStatus[id].Test1) && (GPIO_HIGH_LEVEL == gpioStatus[id].Test0))
+		{
+			retval= input_state_high;
+		}
+		else
+		{
+			retval= input_state_equal;
+		}
+	}
+	return retval;
+}
+
+void ciaaGPIO_DebounInit (perif_t key_id)
+{
+	uint8_t id;
+
+	if( GPIO_VALID(key_id) )
+	{
+		id= GPIO_INDEX(key_id);
+		gpioStatus[id].Test0= GPIO_LOW_LEVEL;
+		gpioStatus[id].Test1= GPIO_LOW_LEVEL;
+		gpioStatus[id].Test2= GPIO_LOW_LEVEL;
+		gpioStatus[id].Test3= GPIO_LOW_LEVEL;
+		gpioStatus[id].enableDebounce= TRUE;
+	}
+	else
+	{
+		for (id=0; id < GPIO_TOTAL; ++id)
+		{
+			gpioStatus[id].Test0= GPIO_LOW_LEVEL;
+			gpioStatus[id].Test1= GPIO_LOW_LEVEL;
+			gpioStatus[id].Test2= GPIO_LOW_LEVEL;
+			gpioStatus[id].Test3= GPIO_LOW_LEVEL;
+			gpioStatus[id].enableDebounce= TRUE;
+		}
+	}
+}
 

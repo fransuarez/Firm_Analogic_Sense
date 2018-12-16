@@ -31,6 +31,8 @@
 #define RET_VAL_BUFF_FULL	( 2 )
 #define RET_VAL_ERR_QUEUE	( 4 )
 
+#define CANT_AUX_LEDS 	6
+#define OUTPUT_GET_INDEX(X)	( X-RELAY_VALVE )
 //**************************************************************************************************
 extern QueueHandle_t 		MGR_INPUT_QUEUE;
 extern QueueHandle_t 		MGR_OUTPUT_QUEUE;
@@ -84,9 +86,10 @@ static perInfo_t nombOutputs[EXT_OUTPUTS_TOTAL]=
 	{ .id= ALARM_LEVEL		, .name= "A_LEVEL"	, .unit= "LEVEL" 	},
 	{ .id= ALARM_CONDUCT	, .name= "A_COND"	, .unit= "LEVEL" 	},
 	{ .id= ALARM_INTERRUPT	, .name= "A_INTERR"	, .unit= "LEVEL" 	},
-	{ .id= ALARM_OVER_TIME	, .name= "A_OVER_TIME" , .unit= "LEVEL" },
+	{ .id= ALARM_TIME	, .name= "A_TIME"	, .unit= "LEVEL" 	},
 
-	{ .id= SIGNAL_PROCCESS	, .name= "S_PROCC"	, .unit= "LEVEL"  	},
+	{ .id= SIGNAL_START		, .name= "S_PROCC"	, .unit= "LEVEL"  	},
+	{ .id= SIGNAL_STOP		, .name= "S_PROCC"	, .unit= "LEVEL"  	},
 	{ .id= SIGNAL_COMPLETE	, .name= "S_COMPL"	, .unit= "LEVEL" 	},
 	{ .id= SIGNAL_MODE		, .name= "S_MODE"	, .unit= "LEVEL" 	}
 };
@@ -96,18 +99,18 @@ static perReg_t stateOutputs[EXT_OUTPUTS_TOTAL]=
 	{	.name= RELAY_VALVE		, .id_gpio= SPI_MOSI, .enable= TRUE, .unit= LEVEL  	},
 	{ 	.name= RELAY_HEATER		, .id_gpio= LCD_RS, .enable= TRUE, .unit= LEVEL		},
 
- 	{ 	.name= ALARM_TEMPER		, .id_gpio= LCD_4, .enable= TRUE, .unit= LEVEL	},
-	{	.name= ALARM_LEVEL		, .id_gpio= LCD_3, .enable= TRUE, .unit= LEVEL	},
-	{	.name= ALARM_CONDUCT	, .id_gpio= LCD_EN, .enable= TRUE, .unit= LEVEL},
-	{	.name= ALARM_INTERRUPT	, .id_gpio= LED_R, .enable= TRUE, .unit= LEVEL  },
-	{ 	.name= ALARM_OVER_TIME	, .id_gpio= LED_1, .enable= TRUE, .unit= LEVEL	},
+ 	{ 	.name= ALARM_TEMPER		, .id_gpio= LCD_4, .enable= TRUE, .unit= LEVEL		},
+	{	.name= ALARM_LEVEL		, .id_gpio= LCD_3, .enable= TRUE, .unit= LEVEL		},
+	{	.name= ALARM_CONDUCT	, .id_gpio= LCD_EN, .enable= TRUE, .unit= LEVEL		},
+	{	.name= ALARM_INTERRUPT	, .id_gpio= LED_2, .enable= TRUE, .unit= LEVEL  	},
+	{ 	.name= ALARM_TIME	, .id_gpio= LED_1, .enable= TRUE, .unit= LEVEL		},
 
- 	{ 	.name= SIGNAL_PROCCESS	, .id_gpio= LED_2, .enable= TRUE, .unit= LEVEL	},
-	{	.name= SIGNAL_COMPLETE	, .id_gpio= LED_3, .enable= TRUE, .unit= LEVEL	},
-	{	.name= SIGNAL_MODE		, .id_gpio= LCD_2, .enable= TRUE, .unit= LEVEL},
+ 	{ 	.name= SIGNAL_START		, .id_gpio= LED_G, .enable= TRUE, .unit= LEVEL		},
+ 	{ 	.name= SIGNAL_STOP		, .id_gpio= LED_R, .enable= TRUE, .unit= LEVEL		},
+	{	.name= SIGNAL_COMPLETE	, .id_gpio= LED_3, .enable= TRUE, .unit= LEVEL		},
+	{	.name= SIGNAL_MODE		, .id_gpio= LCD_2, .enable= TRUE, .unit= LEVEL		},
 };
-#define CANT_AUX_LEDS 	6
-#define OUTPUT_GET_INDEX(X)	( X-RELAY_VALVE )
+
 static perif_t testOutput[CANT_AUX_LEDS]=
 {
 	LCD_EN, SPI_MOSI, LCD_3, LCD_RS, LCD_4, LCD_2
@@ -285,6 +288,7 @@ void taskControlOutputs (void * a)
 			switch (dataRecLed.mode)
 			{
 			case portOutputLed:
+				break;
 			case portOutputDigital:
 
 				updateDigOutput( &dataRecLed );
@@ -296,8 +300,10 @@ void taskControlOutputs (void * a)
 
 				ciaaGPIO_SetLevel( dataRecLed.gpio, dataRecLed.data.value );
 
-				sprintf( buffSendTerminal, "[Out:%s  State:%i]\r\n",
-						 nombOutputs[OUTPUT_GET_INDEX(dataRecLed.data.name)].name, dataRecLed.data.value );
+				sprintf( buffSendTerminal, "Out: %s		V:%i	T:%i'%i\"",
+						 nombOutputs[OUTPUT_GET_INDEX(dataRecLed.data.name)].name, dataRecLed.data.value,
+						 stateOutputs[dataRecLed.data.name].time_value.minutes, stateOutputs[dataRecLed.data.name].time_value.seconds );
+
 				Terminal_Msg_Normal( &msgToSend, buffSendTerminal );
 				xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
 				/*

@@ -11,6 +11,7 @@
 #include "api_GPIO.h"
 #include "ciaaPORT.h"
 
+
 void ciaaLED_Init (void)
 {
 	uint8_t id;
@@ -26,6 +27,7 @@ void ciaaLED_Init (void)
 
 void ciaaLED_Set (uint8_t LEDNumber, bool stat)
 {
+	int i;
 	if ( LEDS_VALID(LEDNumber) )
 	{
 		GPIO_SetLevel( pin_config[LEDNumber].gpioPort, pin_config[LEDNumber].gpioNumber, stat );
@@ -38,7 +40,7 @@ bool ciaaLED_Test (uint8_t LEDNumber)
 	{
 		return GPIO_GetLevel(  pin_config[LEDNumber].gpioPort, pin_config[LEDNumber].gpioNumber );
 	}
-	return false;
+	return FALSE;
 }
 
 void ciaaLED_Toggle(uint8_t LEDNumber)

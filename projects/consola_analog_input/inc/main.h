@@ -82,55 +82,61 @@
 #define  TIMER_1_PER			( 1000 / portTICK_PERIOD_MS )
 #define  TIMER_1_RELOAD			pdTRUE
 #define  TIMER_1_IDn			(void *) 1
-#define  TIMER_1_CALLBACK		timerCallbackReport
+#define  TIMER_1_CALLBACK		timerCB_Report
 
 #define  TIMER_2_NAME			"AnalogInputs Update"
-#define  TIMER_2_PER			( 3000 / portTICK_PERIOD_MS )
+#define  TIMER_2_PER			( 1000 / portTICK_PERIOD_MS )
 #define  TIMER_2_RELOAD			pdTRUE
 #define  TIMER_2_IDn			(void *) 2
-#define  TIMER_2_CALLBACK		timerCallbackAnalog
+#define  TIMER_2_CALLBACK		timerCB_Analog
 
 #define  TIMER_3_NAME			"Desactiva debounce teclas"
 #define  TIMER_3_PER			( 10000 / portTICK_PERIOD_MS )
 #define  TIMER_3_RELOAD			pdFALSE
 #define  TIMER_3_IDn			(void *) 3
-#define  TIMER_3_CALLBACK		timerCallbackTeclas
+#define  TIMER_3_CALLBACK		timerCB_KeysRead
 
 #define  TIMER_4_NAME			"Sample debounce teclas"
-#define  TIMER_4_PER			( 100 / portTICK_PERIOD_MS )
+#define  TIMER_4_PER			( 400 / portTICK_PERIOD_MS )
 #define  TIMER_4_RELOAD			pdTRUE
 #define  TIMER_4_IDn			(void *) 4
-#define  TIMER_4_CALLBACK		timerCallbackDebounce
+#define  TIMER_4_CALLBACK		timerCB_KeysDebounce
 
 #define  TIMER_5_NAME			"Alarma de tempertura"
 #define  TIMER_5_PER			( 10000 / portTICK_PERIOD_MS )
 #define  TIMER_5_RELOAD			pdFALSE
 #define  TIMER_5_IDn			(void *) 5
-#define  TIMER_5_CALLBACK		timerCallbackProccess
+#define  TIMER_5_CALLBACK		timerCB_Proccess
 
 #define  TIMER_6_NAME			"Alarma de conductividad"
 #define  TIMER_6_PER			( 10000 / portTICK_PERIOD_MS )
 #define  TIMER_6_RELOAD			pdFALSE
 #define  TIMER_6_IDn			(void *) 6
-#define  TIMER_6_CALLBACK		timerCallbackProccess
+#define  TIMER_6_CALLBACK		timerCB_Proccess
 
 #define  TIMER_7_NAME			"Alarma de bajo nivel"
 #define  TIMER_7_PER			( 10000 / portTICK_PERIOD_MS )
 #define  TIMER_7_RELOAD			pdFALSE
 #define  TIMER_7_IDn			(void *) 7
-#define  TIMER_7_CALLBACK		timerCallbackProccess
+#define  TIMER_7_CALLBACK		timerCB_Proccess
 
 #define  TIMER_8_NAME			"Alarma de exeso de tiempo"
 #define  TIMER_8_PER			( 15000 / portTICK_PERIOD_MS )
 #define  TIMER_8_RELOAD			pdFALSE
 #define  TIMER_8_IDn			(void *) 8
-#define  TIMER_8_CALLBACK		timerCallbackProccess
+#define  TIMER_8_CALLBACK		timerCB_Proccess
 
 #define  TIMER_9_NAME			"Periodo de proceso completo"
-#define  TIMER_9_PER			( 100000 / portTICK_PERIOD_MS )
+#define  TIMER_9_PER			( 60000 / portTICK_PERIOD_MS )
 #define  TIMER_9_RELOAD			pdFALSE
 #define  TIMER_9_IDn			(void *) 9
-#define  TIMER_9_CALLBACK		timerCallbackProccess
+#define  TIMER_9_CALLBACK		timerCB_Proccess
+
+#define  TIMER_10_NAME			"Sample debounce inputs"
+#define  TIMER_10_PER			( 500 / portTICK_PERIOD_MS )
+#define  TIMER_10_RELOAD		pdTRUE
+#define  TIMER_10_IDn			(void *) 10
+#define  TIMER_10_CALLBACK		timerCB_InpDebounce
 
 /*==================[cplusplus]==============================================*/
 

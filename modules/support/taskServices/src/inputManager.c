@@ -12,6 +12,7 @@
 #include "ciaaPORT.h"
 #include "ciaaTEC.h"
 #include "ciaaAIN.h"
+#include "inputProccess.h"
 #include "terminalManager.h"
 
 extern TimerHandle_t 		TIMER_1_OBJ;
@@ -23,6 +24,7 @@ extern TimerHandle_t 		TIMER_6_OBJ;
 extern TimerHandle_t 		TIMER_7_OBJ;
 extern TimerHandle_t 		TIMER_8_OBJ;
 extern TimerHandle_t 		TIMER_9_OBJ;
+extern TimerHandle_t 		TIMER_10_OBJ;
 
 extern QueueHandle_t 		MGR_INPUT_QUEUE;
 extern QueueHandle_t 		MGR_OUTPUT_QUEUE;
@@ -56,6 +58,7 @@ extern SemaphoreHandle_t 	MGR_INPUT_MUTEX;
 #define TIMER_ANALOGS_UPD	TIMER_2_OBJ
 #define TIMER_TECLAS_INIT	TIMER_3_OBJ
 #define TIMER_DEBOUNCE		TIMER_4_OBJ
+#define TIMER_DEBOUNCE_GPIO	TIMER_10_OBJ
 
 #define TIMER_AL_TEMPER		TIMER_5_OBJ
 #define TIMER_AL_CONDUCT	TIMER_6_OBJ
@@ -63,48 +66,17 @@ extern SemaphoreHandle_t 	MGR_INPUT_MUTEX;
 #define TIMER_AL_TIME_OUT	TIMER_8_OBJ
 #define TIMER_END_PROCCESS	TIMER_9_OBJ
 
+#define INP_TIMER_DEFINE(X)	( NULL != X->alarm_timer )
+#define INP_TIMER_START(X) 	( (INP_TIMER_DEFINE(X))? (xTimerStart( X->alarm_timer, TIMER_WAIT_TOUT )): pdFAIL )
+#define INP_TIMER_STOP(X) 	( (INP_TIMER_DEFINE(X))? (xTimerStop ( X->alarm_timer, TIMER_WAIT_TOUT )): pdFAIL )
+
 #define TIMER_WAIT_TOUT		( 3 )
+#define REG_INP_DIG_FIRST	( WATER_LEVEL )
+#define REG_INP_DIG_LAST	( SL_MODE_FUNCTION )
 //#define PERIF_VALID(X)		( X )
-#define pTimer_t			TimerHandle_t
+
 //**************************************************************************************************
-typedef enum actions_status
-{
-	act_OFF=0,
-	act_ON=1,
-	act_SWAP=2
-
-} actStat_t;
-
-typedef struct op_register
-{ 
-	externId_t	id;
-	actStat_t	status;
-
-} opAct_t;
-
-typedef struct actions_register
-{
-	pTimer_t alarm_timer;
-	opAct_t alarm_signal;
-	opAct_t output_signal;
-
-} actions_t;
-
-typedef struct periferics_register
-{
-	externId_t 	name;
-	perif_t		id_gpio;
-	uint8_t		enable;
-	unit_t		unit;
-	int32_t		smt_max;
-	int32_t		smt_min;
-
-	uint8_t		satuts;		// CHANGE, MAXIMO, MINIMO, ERROR > b0000
-	shTime_t	time_value;
-	int32_t		value;
-	actions_t*	actions;
-
-} perReg_t;
+typedef TimerHandle_t pTimer_t;
 
 typedef struct periferics_ids
 {
@@ -114,40 +86,21 @@ typedef struct periferics_ids
 
 } perInfo_t;
 
-#define OUT_STATUS_SET		( GPIO_HIGH_LEVEL )
-#define OUT_STATUS_RESET	( GPIO_LOW_LEVEL )
-#define INP_ENABLE(X)		( X->enable )
-#define INP_INF_COTA(X) 	( X->smt_min >= X->value )
-#define INP_SUP_COTA(X) 	( X->smt_max <= X->value )
+typedef struct periferics_register
+{
+	externId_t 	name;
+	perif_t		id_gpio;
+	uint8_t		enable;
+	unit_t		unit;
 
-#define INP_DEFINE(X) 		( NONE != X.id )
-#define INP_STATUS(X,Y)		( (INP_DEFINE(X))? (Y == X.status): 0 )
-#define INP_STATUS_SET(X)	( (INP_DEFINE(X))? (X.status= act_ON): X.status )
-#define INP_STATUS_RESET(X)	( (INP_DEFINE(X))? (X.status= act_OFF): X.status )
-// Verifica antes que este en estado bajo, que este definida, y que la accion definida sea modificar o encender antes de ejecutar.
-#define INP_CMP_SET(X)		( (INP_STATUS(X,act_OFF)) ? INP_STATUS_SET(X): X.status )
-// Verifica antes que este en estado alto, que este definida, y que la accion definida sea modificar o bajar.
-#define INP_CMP_RESET(X) 	( (INP_STATUS(X,act_ON))? INP_STATUS_RESET(X): X.status )
+	uint8_t		status;		// CHANGE, MAXIMO, MINIMO, ERROR > b0000
+	shTime_t	time_value;
+	actions_t*	actions;
+	pTimer_t	alarm_timer;
 
-#define INP_TIMER_DEFINE(X)	( NULL != X->alarm_timer )
-#define INP_TIMER_START(X) 	( (INP_TIMER_DEFINE(X))? (xTimerStart( X->alarm_timer, TIMER_WAIT_TOUT )): pdFAIL )
-#define INP_TIMER_STOP(X) 	( (INP_TIMER_DEFINE(X))? (xTimerStop ( X->alarm_timer, TIMER_WAIT_TOUT )): pdFAIL )
-
-#define INP_ALR_DEFINE(X) 	( INP_DEFINE(X->alarm_signal) )
-#define INP_ALR_STATUS(X,Y)	( INP_STATUS(X->alarm_signal,Y) )
-#define INP_ALR_ACTION(X) 	( INP_ACTION(X->alarm_signal) )
-#define INP_ALR_SET(X) 		( INP_CMP_SET(X->alarm_signal))
-#define INP_ALR_RESET(X) 	( INP_CMP_RESET(X->alarm_signal) )
-
-#define INP_OUT_DEFINE(X) 	( INP_DEFINE(X->output_signal) )
-#define INP_OUT_STATUS(X,Y)	( INP_STATUS(X->output_signal,Y) )
-#define INP_OUT_ACTION(X) 	( INP_ACTION(X->output_signal) )
-#define INP_OUT_SET(X) 		( INP_CMP_SET(X->output_signal) )
-#define INP_OUT_RESET(X) 	( INP_CMP_RESET(X->output_signal) )
-
+} perReg_t;
 
 //**************************************************************************************************
-//static int sendReg=0;
 
 static char 			buffSendTerminal[SIZE_BUFF_TERM]= "";
 static char 			buffMonTerminal[SIZE_MON_TERM]= "";
@@ -157,56 +110,72 @@ static RTC_t hdRTC;
 
 static perInfo_t nombInputs[EXT_INPUTS_TOTAL]=
 {
-	{ .id= TERMOCUPLE, .name= "T_CUPLA", .unit= "CELSIUS" },
-	{ .id= THERMISTOR, .name= "T_NTC" , .unit= "CELSIUS" },
-	{ .id= AMPERIMETER, .name= "C_AMP", .unit= "AMPERS"  },
-	{ .id= CONDUCTIMETER, .name= "Q_ION", .unit= "mgSQRMTR" },
-	{ .id= WATER_LEVEL, .name= "L_AGUA", .unit= "cMETERS" },
-	{ .id= SW_START_STOP, .name= "SW_START", .unit= "LEVEL" },
-	{ .id= SL_OBJECT_DETECT, .name= "SL_OBJECT", .unit= "LEVEL" },
-	{ .id= SL_MODE_FUNCTION, .name= "SL_MODE", .unit= "LEVEL" }
+	{ .id= TERMOCUPLE		, .name= "T_CUPLA"	, .unit= "CELSIUS" 	},
+	{ .id= THERMISTOR		, .name= "T_NTC" 	, .unit= "CELSIUS" 	},
+	{ .id= AMPERIMETER		, .name= "C_AMP"	, .unit= "AMPERS"  	},
+	{ .id= CONDUCTIMETER	, .name= "Q_ION"	, .unit= "mgSQRMTR"	},
+	{ .id= WATER_LEVEL		, .name= "L_AGUA"	, .unit= "cMETERS" 	},
+	{ .id= SW_START_STOP	, .name= "SW_START"	, .unit= "LEVEL" 	},
+	{ .id= SL_OBJECT_DETECT	, .name= "SL_OBJECT", .unit= "LEVEL" 	},
+	{ .id= SL_MODE_FUNCTION	, .name= "SL_MODE"	, .unit= "LEVEL" 	}
 };
 static actions_t actionsInputs[EXT_INPUTS_TOTAL]=
 {
-	{ // TERMOCUPLE, 		TIMER_AL_TEMPER
-	.alarm_timer	= NULL		,
-	.alarm_signal 	= { .id= ALARM_TEMPER, .status = act_OFF 	} ,
-	.output_signal	= { .id= RELAY_HEATER, .status = act_OFF } ,
+	{ // TERMOCUPLE
+	.smt_min= 50,
+	.smt_max= 100,
+	.alarm_signal 	= { .id= ALARM_TEMPER, .status = act_OFF 		} ,
+	.output_signal	= { .id= RELAY_HEATER, .status = act_OFF 		} ,
+	.timer_control 	= { .id= TIMER_ALARM_TEMP, .status = act_OFF 	} ,
 	},
-	{ // THERMISTOR,		NULL
-	.alarm_timer	 = NULL	,
+	{ // THERMISTOR
+	.smt_min= 10,
+	.smt_max= 50,
 	.alarm_signal.id = NONE	,
-	.output_signal.id= NONE
+	.output_signal.id= NONE ,
+	.timer_control.id= NONE
 	},
-	{ // AMPERIMETER, 		TIMER_AL_TIME_OUT
-	.alarm_timer	= NULL	,
-	.alarm_signal	= { .id= ALARM_OVER_TIME, .status = act_OFF 	} ,
+	{ // AMPERIMETER:
+	.smt_min= 0,
+	.smt_max= 50000,
+	.alarm_signal	= { .id= ALARM_TIME, .status = act_OFF 			} ,
 	.output_signal	= { .id= SIGNAL_COMPLETE, .status = act_OFF 	},
+	.timer_control 	= { .id= TIMER_ALARM_TIME, .status = act_OFF 	} ,
 	},
-	{ // CONDUCTIMETER, 	TIMER_AL_CONDUCT
-	.alarm_timer	= NULL	,
-	.alarm_signal 	= { .id= ALARM_CONDUCT ,.status = act_OFF } ,
-	.output_signal	= { .id= RELAY_VALVE	 ,.status = act_OFF } ,
+	{ // CONDUCTIMETER:
+	.smt_min= 0,
+	.smt_max= 100,
+	.alarm_signal 	= { .id= ALARM_CONDUCT ,.status = act_OFF 		} ,
+	.output_signal	= { .id= RELAY_VALVE	 ,.status = act_OFF 	} ,
+	.timer_control 	= { .id= TIMER_ALARM_CONDUCT, .status = act_OFF } ,
 	},
-	{ // WATER_LEVEL, 		TIMER_AL_LEVEL
-	.alarm_timer	= NULL	,
-	.alarm_signal 	= { .id= ALARM_LEVEL	 ,.status = act_OFF } ,
-	.output_signal	= { .id= RELAY_VALVE	 ,.status = act_OFF  } ,
+	{ // WATER_LEVEL:
+	.smt_min= OUT_STATUS_RESET,
+	.smt_max= OUT_STATUS_SET,
+	.alarm_signal 	= { .id= ALARM_LEVEL	 ,.status = act_OFF	 	} ,
+	.output_signal	= { .id= RELAY_VALVE	 ,.status = act_OFF  	} ,
+	.timer_control 	= { .id= TIMER_ALARM_LEVEL, .status = act_OFF 	}
 	},
-	{ // SW_START_STOP, 	TIMER_END_PROCCESS
-	.alarm_timer   	= NULL	,
-	.alarm_signal 	= { .id= ALARM_OVER_TIME,.status = act_OFF } ,
-	.output_signal	= { .id= SIGNAL_PROCCESS, .status = act_OFF } ,
+	{ // SW_START_STOP:
+	.smt_min= OUT_STATUS_RESET,
+	.smt_max= OUT_STATUS_SET,
+	.alarm_signal 	= { .id= SIGNAL_STOP , .status = act_OFF 		} ,
+	.output_signal	= { .id= SIGNAL_START, .status = act_OFF 		} ,
+	.timer_control 	= { .id= TIMER_PROCCESS_END, .status = act_OFF 	}
 	},
-	{ // SL_OBJECT_DETECT, 	NULL
-	.alarm_timer   	= NULL	,
-	.alarm_signal.id= NONE  ,
-	.output_signal	= { .id= ALARM_INTERRUPT, .status = act_OFF 	} ,
+	{ // SL_OBJECT_DETECT:
+	.smt_min= OUT_STATUS_RESET,
+	.smt_max= OUT_STATUS_SET,
+	.alarm_signal 	= { .id= ALARM_INTERRUPT , .status = act_OFF 	} ,
+	.output_signal.id= NONE ,
+	.timer_control.id= NONE
 	},
-	{ // SL_MODE_FUNCTION,	NULL
-	.alarm_timer	= NULL ,
+	{ // SL_MODE_FUNCTION:
+	.smt_min= OUT_STATUS_RESET,
+	.smt_max= OUT_STATUS_SET,
 	.alarm_signal.id= NONE ,
 	.output_signal	= { .id= SIGNAL_MODE	, .status = act_OFF 	} ,
+	.timer_control.id= NONE
 	}
 };
 
@@ -214,36 +183,36 @@ static actions_t actionsInputs[EXT_INPUTS_TOTAL]=
 static perReg_t stateInputs[EXT_INPUTS_TOTAL]=
 {
 	{
-	.name= TERMOCUPLE, .id_gpio= AIN_1, .enable= TRUE, .unit= CELSIUS, .smt_min= 50, .smt_max= 70,
-	.actions= &actionsInputs[TERMOCUPLE],
+	.name= TERMOCUPLE, .id_gpio= AIN_1, .enable= TRUE, .unit= CELSIUS,
+	.actions= &actionsInputs[TERMOCUPLE], .alarm_timer=NULL,
 	},
 	{
-	.name= THERMISTOR, .id_gpio= AIN_2, .enable= TRUE, .unit= CELSIUS, .smt_min= 10, .smt_max= 50,
-	.actions= &actionsInputs[THERMISTOR],
+	.name= THERMISTOR, .id_gpio= AIN_2, .enable= TRUE, .unit= CELSIUS,
+	.actions= &actionsInputs[THERMISTOR], .alarm_timer=NULL,
 	},
 	{
-	.name= AMPERIMETER, .id_gpio= AIN_3, .enable= TRUE, .unit= AMPERS, .smt_min= 20, .smt_max= 70,
-	.actions= &actionsInputs[AMPERIMETER],
+	.name= AMPERIMETER, .id_gpio= AIN_3, .enable= TRUE, .unit= AMPERS,
+	.actions= &actionsInputs[AMPERIMETER], .alarm_timer=NULL,
 	},
 	{
-	.name= CONDUCTIMETER, .id_gpio= AIN_2, .enable= FALSE, .unit= mgSQRMTR, .smt_min= 0, .smt_max= 100,
-	.actions= &actionsInputs[CONDUCTIMETER],
+	.name= CONDUCTIMETER, .id_gpio= AIN_2, .enable= FALSE, .unit= mgSQRMTR,
+	.actions= &actionsInputs[CONDUCTIMETER], .alarm_timer=NULL,
 	},
 	{	// Switch 1:
-	.name= WATER_LEVEL, .id_gpio= GPIO_5, .enable= TRUE, .unit= LEVEL, .smt_min= OUT_STATUS_RESET, .smt_max= OUT_STATUS_SET,
-	.actions= &actionsInputs[WATER_LEVEL],
+	.name= WATER_LEVEL, .id_gpio= GPIO_5, .enable= TRUE, .unit= LEVEL,
+	.actions= &actionsInputs[WATER_LEVEL], .alarm_timer=NULL,
 	},
 	{
-	.name= SW_START_STOP, .id_gpio= TECL1, .enable= TRUE, .unit= LEVEL, .smt_min= OUT_STATUS_RESET, .smt_max= OUT_STATUS_SET,
-	.actions= &actionsInputs[SW_START_STOP],
+	.name= SW_START_STOP, .id_gpio= TECL1, .enable= TRUE, .unit= LEVEL,
+	.actions= &actionsInputs[SW_START_STOP], .alarm_timer=NULL,
 	},
 	{	// Switch 2:
-	.name= SL_OBJECT_DETECT, .id_gpio= LCD_1, .enable= TRUE, .unit= LEVEL, .smt_min= OUT_STATUS_RESET, .smt_max= OUT_STATUS_SET,
-	.actions= &actionsInputs[SL_OBJECT_DETECT],
+	.name= SL_OBJECT_DETECT, .id_gpio= LCD_1, .enable= TRUE, .unit= LEVEL,
+	.actions= &actionsInputs[SL_OBJECT_DETECT], .alarm_timer=NULL,
 	},
 	{	// Switch 3:
-	.name= SL_MODE_FUNCTION, .id_gpio= GPIO_1, .enable= TRUE, .unit= LEVEL, .smt_min= OUT_STATUS_RESET, .smt_max= OUT_STATUS_SET,
-	.actions= &actionsInputs[SL_MODE_FUNCTION],
+	.name= SL_MODE_FUNCTION, .id_gpio= GPIO_1, .enable= TRUE, .unit= LEVEL,
+	.actions= &actionsInputs[SL_MODE_FUNCTION], .alarm_timer=NULL,
 	}
 };
 
@@ -260,391 +229,8 @@ void _calcSizeTypes (uint8_t * retval)
 	retval[5]= sizeof(unit_t);
 }
 
-static void taskControl_Termocuple (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-	if( INP_INF_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-	else if( INP_SUP_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_ON) )
-		{
-			INP_OUT_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-	else
-	{
-		if( INP_ALR_STATUS(pAct, act_ON) )
-		{
-			//3.2.1. Desactiva la alarma:
-			INP_ALR_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->alarm_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-
-	}
-	if( INP_INF_COTA(pR) || INP_SUP_COTA(pR) )
-	{
-		if( INP_ALR_STATUS(pAct, act_OFF) )
-		{
-			INP_TIMER_START(pAct);
-			INP_ALR_SET(pAct);
-		}
-	}
-	else
-	{
-		if( INP_ALR_STATUS(pAct, act_ON) )
-		{
-			 INP_TIMER_STOP(pAct);
-			 INP_ALR_RESET(pAct);
-		}
-	}
-}
-
-static void taskControl_Amperimeter (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-	static int proccess=0;
-	static int32_t counter=0;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-
-	if( stateInputs[SL_OBJECT_DETECT].value )
-	{
-		if( !proccess )
-		{
-			proccess=1;
-		}
-	}
-	if( !stateInputs[SW_START_STOP].value )
-	{
-		proccess=0;
-		counter=0;
-	}
-
-	if( proccess )
-	{
-		counter += pR->value;
-
-		if( pR->smt_max < counter )
-		{
-			if( INP_OUT_STATUS(pAct, act_OFF) )
-			{
-				INP_OUT_SET(pAct);
-				outAction.data.value= OUT_STATUS_SET;
-				outAction.data.name= pAct->output_signal.id;
-				xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-			}
-			if( INP_ALR_STATUS(pAct, act_OFF) )
-			{
-				INP_ALR_SET(pAct);
-				INP_TIMER_START(pAct);
-			}
-		}
-		else
-		{
-			if( INP_OUT_STATUS(pAct, act_ON) )
-			{
-				INP_OUT_RESET(pAct);
-				outAction.data.value= OUT_STATUS_RESET;
-				outAction.data.name= pAct->output_signal.id;
-				xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-			}
-			if( INP_ALR_STATUS(pAct, act_ON) )
-			{
-				INP_ALR_RESET(pAct);
-				INP_TIMER_STOP(pAct);
-
-				outAction.data.value= OUT_STATUS_RESET;
-				outAction.data.name= pAct->alarm_signal.id;
-				xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-			}
-		}
-
-	}
-
-
-}
-
-static void taskControl_Conductimeter(perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-	if( INP_SUP_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-		if( INP_ALR_STATUS(pAct, act_OFF) )
-		{
-			INP_ALR_SET(pAct);
-			INP_TIMER_START(pAct);
-		}
-	}
-	else
-	{
-		if( INP_ALR_STATUS(pAct, act_ON) )
-		{
-			INP_ALR_RESET(pAct);
-			INP_TIMER_STOP(pAct);
-
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->alarm_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-}
-
-static void taskControl_Level (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-
-	if( INP_INF_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-		if( INP_ALR_STATUS(pAct, act_OFF) )
-		{
-			INP_ALR_SET(pAct);
-			INP_TIMER_START(pAct);
-		}
-	}
-	else
-	{
-		if( INP_OUT_STATUS(pAct, act_ON) )
-		{
-			INP_OUT_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-		if( INP_ALR_STATUS(pAct, act_ON) )
-		{
-			//3.2.1. Desactiva la alarma:
-			INP_ALR_RESET(pAct);
-			INP_TIMER_STOP(pAct);
-
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->alarm_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-}
-
-static void taskControl_ProcessTimer (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-	if( INP_SUP_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-		if( INP_ALR_STATUS(pAct, act_OFF) )
-		{
-			INP_ALR_SET(pAct);
-			INP_TIMER_START(pAct);
-		}
-	}
-	else
-	{
-		if( INP_OUT_STATUS(pAct, act_ON) )
-		{
-			INP_OUT_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-		if( INP_ALR_STATUS(pAct, act_ON) )
-		{
-			INP_ALR_RESET(pAct);
-			INP_TIMER_STOP(pAct);
-
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->alarm_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-}
-
-static void taskControl_ObjectDetect (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-	if( INP_INF_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-	else
-	{
-		if( INP_OUT_STATUS(pAct, act_ON) )
-		{
-			INP_OUT_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-}
-
-static void taskControl_ModeFunction (perReg_t * pR)
-{
-	dInOutQueue_t outAction;
-	actions_t* pAct = pR->actions;
-
-	outAction.mode= portOutputDigital;
-	outAction.data.secTime=0;
-
-	if( INP_INF_COTA(pR) )
-	{
-		if( INP_OUT_STATUS(pAct, act_OFF) )
-		{
-			INP_OUT_SET(pAct);
-			outAction.data.value= OUT_STATUS_SET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-	else
-	{
-		if( INP_OUT_STATUS(pAct, act_ON) )
-		{
-			INP_OUT_RESET(pAct);
-			outAction.data.value= OUT_STATUS_RESET;
-			outAction.data.name= pAct->output_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
-		}
-	}
-	// Agregar todo lo referido a cambio de funcionamiento.
-}
-
-static void taskControl_CtrActions (void)
-{
-	perReg_t * pR;
-	int i;
-
-	for(i = 0; i < EXT_INPUTS_TOTAL; ++i)
-	{
-		pR= &stateInputs[i];
-
-		if( !INP_ENABLE(pR) )
-		{
-			continue;
-		}
-
-		// Deberia dejar acciones especificas para cada tarea adicionales.
-		switch( pR->name )
-		{
-		case TERMOCUPLE:
-			taskControl_Termocuple(pR);
-			break;
-		case AMPERIMETER:
-			taskControl_Amperimeter(pR);
-			break;
-		case CONDUCTIMETER:
-			taskControl_Conductimeter(pR);
-			break;
-		case WATER_LEVEL:
-			taskControl_Level(pR);
-			break;
-		case SW_START_STOP:
-			taskControl_ProcessTimer(pR);
-			break;
-		case SL_OBJECT_DETECT:
-			taskControl_ObjectDetect(pR);
-			break;
-		case SL_MODE_FUNCTION:
-			taskControl_ModeFunction(pR);
-			break;
-		default:
-			break;
-		}
-	}
-}
-
-static void taskControl_InitPin (void)
-{
-	ciaaTEC_Init();
-	ciaaAIN_Init();
-	//ciaaTEC_EnableIRQ( TECL2 );
-
-	ciaaGPIO_EnablePin( stateInputs[SL_OBJECT_DETECT].id_gpio, GPIO_INP_MODE );
-	ciaaGPIO_EnablePin( stateInputs[SL_MODE_FUNCTION].id_gpio, GPIO_INP_MODE );
-	ciaaGPIO_EnablePin( stateInputs[WATER_LEVEL].id_gpio, GPIO_INP_MODE );
-
-	ciaaTEC_EnableIRQ( TECL1, IRQ_GPIO_CH0 );
-	ciaaGPIO_EnableIRQ( stateInputs[SL_OBJECT_DETECT].id_gpio, IRQ_GPIO_CH1 );
-	ciaaGPIO_EnableIRQ( stateInputs[SL_MODE_FUNCTION].id_gpio, IRQ_GPIO_CH2 );
-	ciaaGPIO_EnableIRQ( stateInputs[WATER_LEVEL].id_gpio, IRQ_GPIO_CH3 );
-
-	stateInputs[TERMOCUPLE].actions->alarm_timer= TIMER_AL_TEMPER;
-	stateInputs[AMPERIMETER].actions->alarm_timer= TIMER_AL_TIME_OUT;
-	stateInputs[CONDUCTIMETER].actions->alarm_timer= TIMER_AL_CONDUCT;
-	stateInputs[WATER_LEVEL].actions->alarm_timer= TIMER_AL_LEVEL;
-	stateInputs[SW_START_STOP].actions->alarm_timer= TIMER_END_PROCCESS;
-
-	xTimerStart( TIMER_ANALOGS_UPD, 0 );
-	//xTimerStart( TIMER_TECLAS_INIT, 2 );
-}
-
 // TODO agregarla alguna libreria de manejo de tiempos. Lo unico que deberia de pasarle extra es 4' y 15".
-static uint8_t calculateDiffTime (uint8_t initMin, uint8_t initSec, uint8_t endMin, uint8_t endSec)
+static uint8_t sup_calculateTime (uint8_t initMin, uint8_t initSec, uint8_t endMin, uint8_t endSec)
 {
 	uint8_t sec_diff;
 	uint8_t min_diff;
@@ -674,7 +260,7 @@ static uint8_t calculateDiffTime (uint8_t initMin, uint8_t initSec, uint8_t endM
 	return sec_diff;
 }
 
-static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
+static uint8_t sup_historyRegister (dInOutQueue_t* paqInfoGPIO)
 {
 	uint8_t retval=RET_VAL_NO_PROCESS;
 	GpioReg_t histRegGpio;
@@ -706,7 +292,7 @@ static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
 
 		if( !histRegGpio.secTime )
 		{
-			histRegGpio.secTime= calculateDiffTime( minute_init, second_init, paqInfoGPIO->sTime.minutes, paqInfoGPIO->sTime.seconds );
+			histRegGpio.secTime= sup_calculateTime( minute_init, second_init, paqInfoGPIO->sTime.minutes, paqInfoGPIO->sTime.seconds );
 		}
 
 		//&regToLog[idReg] << Equivalente
@@ -730,22 +316,22 @@ static uint8_t historyRegister (dInOutQueue_t* paqInfoGPIO)
 	return retval;
 }
 
-static uint8_t historyDigInput (dInOutQueue_t * regDigital)
+static uint8_t sup_historyDInput (dInOutQueue_t * regDigital)
 {
 	uint8_t retval=RET_VAL_NO_PROCESS;
 	int i= regDigital->data.name;
 
 	// Se supone que si esta aca es porque vario su valor:
 	// FIXME puedo agregarle una condiion extra, verificando si quiero historizar esta variable
-	if( stateInputs[i].value )
+	if( stateInputs[i].actions->lastValue )
 	{
-		retval= historyRegister( regDigital );
+		retval= sup_historyRegister( regDigital );
 	}
 
 	return retval;
 }
 
-static uint8_t historyAnInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
+static uint8_t sup_historyAInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
 {
 	uint8_t retval= RET_VAL_NO_PROCESS;
 	dInOutQueue_t data_record;
@@ -764,8 +350,8 @@ static uint8_t historyAnInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
 		{
 			continue;
 		}
-		stateInputs[i].value= regAnalogics[j].value;
-		stateInputs[i].satuts= (uint8_t) AINP_GET_ALL(ainStatus, i);
+		stateInputs[i].actions->lastValue= regAnalogics[j].value;
+		stateInputs[i].status= (uint8_t) AINP_GET_ALL(ainStatus, i);
 		stateInputs[i].time_value.minutes= hdRTC.min;
 		stateInputs[i].time_value.seconds= hdRTC.sec;
 
@@ -790,33 +376,31 @@ static uint8_t historyAnInput (repAnStat_t * regAnalogics, uint16_t ainStatus)
 			data_record.data.value= regAnalogics[j].value;
 			data_record.data.secTime=0;
 
-			retval= historyRegister( &data_record );
+			retval= sup_historyRegister( &data_record );
 		}
 	}
 	return retval;
 }
 
-static uint8_t convertRegToSend (terMsg_t *msgToSend, uint8_t rId)
+static uint8_t sup_convertReg (terMsg_t *msgToSend, uint8_t rId)
 {
 	uint8_t retval=0;
 
 	if( EXT_INPUTS_TOTAL > rId )
 	{
-		sprintf( buffMonTerminal, "ID:%s UN:%s HAB:%i V:%i %i'%i\"",
-				 nombInputs[rId].name, nombInputs[rId].unit,
-				 stateInputs[rId].enable, stateInputs[rId].value,
+		sprintf( buffMonTerminal, "Inp: %s		V:%i	  U: %s 	T:%i'%i\"",
+				 nombInputs[rId].name, stateInputs[rId].actions->lastValue, nombInputs[rId].unit,
 				 stateInputs[rId].time_value.minutes, stateInputs[rId].time_value.seconds
 		);
 		msgToSend->msg= buffMonTerminal;
 		msgToSend->size= strlen(buffMonTerminal);
 
 		retval=1;
-
 	}
 	return retval;
 }
 
-static uint8_t updateDigInput (dInOutQueue_t * regDigital)
+static uint8_t sup_updateDInput (dInOutQueue_t * regDigital)
 {
 	uint8_t retval= RET_VAL_OK;
 	int i= regDigital->data.name;
@@ -832,7 +416,8 @@ static uint8_t updateDigInput (dInOutQueue_t * regDigital)
 	{
 		stateInputs[i].time_value.minutes= regDigital->sTime.minutes;
 		stateInputs[i].time_value.seconds= regDigital->sTime.seconds;
-		stateInputs[i].value= regDigital->data.value;
+		stateInputs[i].status= regDigital->data.value;
+		stateInputs[i].actions->lastValue= stateInputs[i].status;
 
 		// Si coiniciden los registros entonces actualiza el valor leido.
 		if( (stateInputs[i].name != regDigital->data.name) || (LEVEL != stateInputs[i].unit) )
@@ -846,13 +431,86 @@ static uint8_t updateDigInput (dInOutQueue_t * regDigital)
 	return retval;
 }
 
+static uint8_t sup_integerCompare(actions_t* pAct)
+{
+	uint8_t retval= RET_VAL_NO_PROCESS;
+	static int proccess=0;
+	static int32_t counter=0;
+
+	if( GPIO_LOW_LEVEL  == stateInputs[SL_OBJECT_DETECT].status )
+	{
+		if( !proccess )
+		{
+			proccess=1;
+		}
+	}
+	//if( GPIO_LOW_LEVEL == stateInputs[SW_START_STOP].status )
+	else
+	{
+		proccess=0;
+		counter=0;
+		pAct->lastValue=0;
+	}
+	/*
+	else if( GPIO_HIGH_LEVEL == stateInputs[SL_OBJECT_DETECT].status )
+	{
+		counter=0;
+		pAct->lastValue=0;
+		retval= RET_VAL_OK;
+	}
+	 */
+	if( proccess )
+	{
+		counter+= pAct->lastValue;
+		pAct->lastValue= counter;
+		retval= RET_VAL_OK;
+	}
+	return retval;
+}
+
+static uint8_t sup_changeMode (actions_t* pAct)
+{
+	uint8_t retval= RET_VAL_OK;
+
+	if( GPIO_HIGH_LEVEL == pAct->lastValue )
+	{
+		stateInputs[AMPERIMETER].enable= FALSE;
+		stateInputs[CONDUCTIMETER].enable= TRUE;
+	}
+	else
+	{
+		stateInputs[AMPERIMETER].enable= TRUE;
+		stateInputs[CONDUCTIMETER].enable= FALSE;
+	}
+	return retval;
+}
+
+static uint8_t sup_statusProccess (actions_t* pAct)
+{
+	uint8_t retval= RET_VAL_OK;
+	/*
+	 * El unico caso critico es cuando se esta en proceso iniciado. Un deteccion de
+	 * ausencia de objeto disparar un alarma. Casos contarios se ignora esta entrada.
+	 */
+
+	if( GPIO_HIGH_LEVEL == stateInputs[SW_START_STOP].status&&
+		GPIO_LOW_LEVEL == pAct->lastValue	)
+	{
+		retval= RET_VAL_NO_PROCESS;
+	}
+	else
+	{
+		// Si no esta contando tiempo etonces fuerzo el cambio de estado para no tener
+		// una alarma innecesaria.
+		pAct->lastValue= GPIO_HIGH_LEVEL;
+	}
+	return retval;
+}
 
 //**************************************************************************************************
-#define TECL_FLAG_REG(X)	(1<<(X-TECL1))
-static tecReg_t tecStatus= TECL_RELEASE;
-static int initDebounce=0;
 
-void timerCallbackReport (TimerHandle_t pxTimer)
+//static int initAnalog=0;
+void timerCB_Report (TimerHandle_t pxTimer)
 {
 	static int i=0;
 	dInOutQueue_t datatoSend;
@@ -875,18 +533,19 @@ void timerCallbackReport (TimerHandle_t pxTimer)
 	while( FALSE == stateInputs[i++].enable && EXT_INPUTS_TOTAL > i);
 }
 
-void timerCallbackAnalog (TimerHandle_t pxTimer)
+void timerCB_Analog (TimerHandle_t pxTimer)
 {
 	dInOutQueue_t datatoSend;
 
 	datatoSend.mode= portInputAnalog;
 	xQueueSend( MGR_INPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_MSG_OUT );
+	//initAnalog= 1;
 }
 
-void timerCallbackTeclas (TimerHandle_t pxTimer)
+void timerCB_KeysRead (TimerHandle_t pxTimer)
 {
 	//static int expired= 0;
-
+/*
 	if( tecStatus )
 	{
 		xTimerReset( pxTimer, TIMER_WAIT_TOUT );
@@ -901,96 +560,265 @@ void timerCallbackTeclas (TimerHandle_t pxTimer)
 			xTimerStop( TIMER_DEBOUNCE, TIMER_WAIT_TOUT );
 		}
 	}
+	*/
 }
 
-void timerCallbackDebounce (TimerHandle_t pxTimer)
+void timerCB_KeysDebounce (TimerHandle_t pxTimer)
 {
-	dInOutQueue_t datatoSend;
-	static tecReg_t tecPrevStatus= TECL_RELEASE;
-	perif_t id;
+	static int initDebounce=0;
+	tecReg_t tecStatus;
+
+	dInOutQueue_t datatoSend={ .mode=portInputTecl, .data.secTime=0 };
 	int j;
 
 	if( !initDebounce )
 	{
-		ciaaTEC_DebounInit(TECL1_4);
+		ciaaTEC_DebounInit(TECL_ALL);
 		initDebounce= 1;
 	}
 
-	tecStatus= ciaaTEC_DebounStatus(TECL1_4);
-	datatoSend.mode= portInputTecl;
+	tecStatus= ciaaTEC_DebounStatus(TECL_ALL);
 
 	// Algoritmo de busqueda de asociacon de pulsador con perifericos.
-	for( id=TECL1, j=SW_START_STOP; SL_MODE_FUNCTION>=j;  )
+	for( j=REG_INP_DIG_FIRST; REG_INP_DIG_LAST>=j; j++ )
 	{
-		if( stateInputs[j].id_gpio == id )
+		if( TECL_VALID( stateInputs[j].id_gpio ) && stateInputs[j].enable )
 		{
 			datatoSend.gpio= stateInputs[j].id_gpio ;
 			datatoSend.data.name= stateInputs[j].name;
-			datatoSend.data.secTime=0;
 
-			if( TECL_PRESS( TECL_FLAG_REG(id), tecPrevStatus, tecStatus ) )
+			if( TECL_STATUS( tecStatus, stateInputs[j].id_gpio ) )
 			{
-				datatoSend.data.value= TECL_PUSH;
+				if( GPIO_HIGH_LEVEL == stateInputs[j].status )
+				{
+					datatoSend.data.value= GPIO_LOW_LEVEL;
+				}
+				else
+				{
+					datatoSend.data.value= GPIO_HIGH_LEVEL;
+				}
+
 				xQueueSend( MGR_INPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_MSG_OUT );
 			}
 			/*
-			else if( TECL_RELEASE( TECL_FLAG_REG(id), tecPrevStatus, tecStatus ) )
+			else if( TECL_RELEASE( TECL_FLAG_REG(id ), tecPrevStatus, tecStatus ) )
 			{
 				datatoSend.data.value= TECL_FREE;
 				xQueueSend( MGR_INPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_MSG_OUT );
 			}
 			*/
-			id=TECL1;
-			j++;
-			continue;
 		}
-		if( TECL4 == id )
-		{
-			id=TECL1;
-			j++;
-		}
-		id++;
 	}
-
-	tecPrevStatus= tecStatus;
 }
 
-void timerCallbackProccess (TimerHandle_t pxTimer)
+void timerCB_InpDebounce (TimerHandle_t pxTimer)
 {
-	dInOutQueue_t datatoSend;
+	dInOutQueue_t datatoSend={ .mode=portInputDigital, .data.secTime=0 };
+	static int setUp= 0;
+	debInput_t gpioStat;
+	int j;
+
+	if( !setUp )
+	{
+		for( j=REG_INP_DIG_FIRST; REG_INP_DIG_LAST>=j; j++ )
+		{
+			ciaaGPIO_DebounInit( stateInputs[j].id_gpio );
+		}
+		setUp= 1;
+	}
+
+	// Algoritmo de busqueda de asociacon de pulsador con perifericos.
+	for( j=REG_INP_DIG_FIRST; REG_INP_DIG_LAST>=j; j++ )
+	{
+		if( (FALSE == stateInputs[j].enable) && !GPIO_VALID( stateInputs[j].id_gpio ) )
+		{
+			continue;
+		}
+
+		gpioStat= ciaaGPIO_DebounStatus( stateInputs[j].id_gpio );
+		if( gpioStat )
+		{
+			datatoSend.gpio= stateInputs[j].id_gpio ;
+			datatoSend.data.name= stateInputs[j].name;
+
+			if( input_state_low == gpioStat )
+			{
+				datatoSend.data.value= GPIO_LOW_LEVEL;
+				xQueueSend( MGR_INPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_MSG_OUT );
+			}
+			else if( input_state_high == gpioStat )
+			{
+				datatoSend.data.value= GPIO_HIGH_LEVEL;
+				xQueueSend( MGR_INPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_MSG_OUT );
+			}
+			else
+			{
+				// Entrada no cambio de estado
+			}
+		}
+	}
+
+}
+
+void timerCB_Proccess (TimerHandle_t pxTimer)
+{
+	dInOutQueue_t datatoSend= {.mode= portOutputDigital, .data.value= OUT_STATUS_SET, .data.secTime=0};
 	int i;
 	//actions_t* pAct;
 
-	datatoSend.mode= portOutputDigital;
-	datatoSend.data.value= OUT_STATUS_SET;
-	datatoSend.data.secTime=0;
-
 	for(i = 0; i < EXT_INPUTS_TOTAL; ++i)
 	{
-		if( stateInputs[i].actions->alarm_timer == pxTimer )
+		if( stateInputs[i].alarm_timer == pxTimer )
 		{
 			datatoSend.data.name = stateInputs[i].actions->alarm_signal.id;
-			xQueueSend( MGR_OUTPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_OUTPUT );
+			stateInputs[i].actions->alarm_signal.status= act_ON;
 
+			xQueueSend( MGR_OUTPUT_QUEUE, &datatoSend, TIMEOUT_QUEUE_OUTPUT );
 			break;
 		}
 	}
 }
 
 //**************************************************************************************************
+static void taskControl_InitPin (void)
+{
+	ciaaTEC_Init();
+	ciaaAIN_Init();
+	//ciaaTEC_EnableIRQ( TECL2 );
+
+	ciaaGPIO_EnablePin( stateInputs[SL_OBJECT_DETECT].id_gpio, GPIO_INP_MODE );
+	ciaaGPIO_EnablePin( stateInputs[SL_MODE_FUNCTION].id_gpio, GPIO_INP_MODE );
+	ciaaGPIO_EnablePin( stateInputs[WATER_LEVEL].id_gpio, GPIO_INP_MODE );
+
+	//ciaaTEC_EnableIRQ( TECL1, IRQ_GPIO_CH0 );
+	//ciaaGPIO_EnableIRQ( stateInputs[SL_OBJECT_DETECT].id_gpio, IRQ_GPIO_CH1 );
+	//ciaaGPIO_EnableIRQ( stateInputs[SL_MODE_FUNCTION].id_gpio, IRQ_GPIO_CH2 );
+	//ciaaGPIO_EnableIRQ( stateInputs[WATER_LEVEL].id_gpio, IRQ_GPIO_CH3 );
+
+	stateInputs[TERMOCUPLE].alarm_timer= TIMER_AL_TEMPER;
+	stateInputs[AMPERIMETER].alarm_timer= TIMER_AL_TIME_OUT;
+	stateInputs[CONDUCTIMETER].alarm_timer= TIMER_AL_CONDUCT;
+
+	stateInputs[WATER_LEVEL].alarm_timer= TIMER_AL_LEVEL;
+	stateInputs[SW_START_STOP].alarm_timer= TIMER_END_PROCCESS;
+
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+	xTimerStart( TIMER_DEBOUNCE_GPIO, 2 );
+	xTimerStart( TIMER_DEBOUNCE, 2 );
+
+	/*
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+	xTimerStart( TIMER_ANALOGS_UPD, 0 );
+
+#define TIMER_AL_TEMPER		TIMER_5_OBJ
+#define TIMER_AL_CONDUCT	TIMER_6_OBJ
+#define TIMER_AL_LEVEL		TIMER_7_OBJ
+#define TIMER_AL_TIME_OUT	TIMER_8_OBJ
+#define TIMER_END_PROCCESS	TIMER_9_OBJ
+ */
+
+}
+
+static void taskControl_Actions (void)
+{
+	perReg_t * pR;
+	actions_t* pAct;
+	dInOutQueue_t outAction={.mode= portOutputDigital, .data.secTime=0};
+	int i;
+
+	for(i = 0; i < EXT_INPUTS_TOTAL; ++i)
+	{
+		pR= &stateInputs[i];
+		pAct= pR->actions;
+
+		if( !pR->enable )
+		{
+			continue;
+		}
+		// Deberia dejar acciones especificas para cada tarea adicionales.
+		switch( pR->name )
+		{
+		case TERMOCUPLE:
+			control_Termocuple(pAct);
+			break;
+		case AMPERIMETER:
+			sup_integerCompare(pAct);
+			control_Amperimeter(pAct);
+			break;
+		case CONDUCTIMETER:
+			control_Conductimeter(pAct);
+			break;
+		case WATER_LEVEL:
+			control_Level(pAct);
+			break;
+		case SW_START_STOP:
+			control_ProcessTimer(pAct);
+			break;
+		case SL_OBJECT_DETECT:
+			sup_statusProccess(pAct);
+			control_ObjectDetect(pAct);
+			break;
+		case SL_MODE_FUNCTION:
+			control_ModeFunction(pAct);
+			sup_changeMode(pAct);
+			break;
+		default:
+			break;
+		}
+
+		if( act_ON == pAct->alarm_signal.action && NONE != pAct->alarm_signal.id )
+		{
+			outAction.data.name= pAct->alarm_signal.id;
+			if( act_OFF ==  pAct->alarm_signal.status )
+			{
+				outAction.data.value= OUT_STATUS_RESET;
+				xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
+			}
+		}
+
+		if( act_ON == pAct->output_signal.action && NONE != pAct->output_signal.id )
+		{
+			outAction.data.name= pAct->output_signal.id;
+			if( act_ON ==  pAct->output_signal.status )
+			{
+				outAction.data.value= OUT_STATUS_SET;
+			}
+			else
+			{
+				outAction.data.value= OUT_STATUS_RESET;
+			}
+			xQueueSend( MGR_OUTPUT_QUEUE, &outAction, TIMEOUT_QUEUE_OUTPUT );
+		}
+
+		if( act_ON == pAct->timer_control.action && NONE != pAct->timer_control.id )
+		{
+			if( act_ON ==  pAct->timer_control.status )
+			{
+				INP_TIMER_START(pR);
+			}
+			else
+			{
+				INP_TIMER_STOP(pR);
+			}
+		}
+	}
+}
+
 void taskControlInputs (void * a)
 {
-	dOutputQueue_t dataToSend;
+	//dOutputQueue_t dataToSend;
+	dInOutQueue_t dataRecKey;
 	terMsg_t msgToSend;
 	int monitorMode=0;
-	dInOutQueue_t dataRecKey;
 	repAnStat_t reportAnalogInputs[ADC_TOTAL];
 	uint16_t retAnalogUpdate;
 
 	_calcSizeTypes( sizeTypes );
 
 	taskControl_InitPin();
-
 
 	while (1)
 	{
@@ -1015,9 +843,9 @@ void taskControlInputs (void * a)
 					*/
 				case portInputDigital:
 
-					updateDigInput( &dataRecKey );
+					sup_updateDInput( &dataRecKey );
 
-					if( RET_VAL_BUFF_FULL & historyDigInput( &dataRecKey ) )
+					if( RET_VAL_BUFF_FULL & sup_historyDInput( &dataRecKey ) )
 					{
 						xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 					}
@@ -1028,7 +856,7 @@ void taskControlInputs (void * a)
 
 					retAnalogUpdate= ciaaAIN_Update( &reportAnalogInputs[0] );
 					// Si se completa el registro de RAM se envia a la eeprom:
-					if( RET_VAL_BUFF_FULL & historyAnInput( reportAnalogInputs, retAnalogUpdate ))
+					if( RET_VAL_BUFF_FULL & sup_historyAInput( reportAnalogInputs, retAnalogUpdate ))
 					{
 						xQueueSend( MGR_DATALOG_QUEUE, &dataToLog, TIMEOUT_QUEUE_OUTPUT );
 					}
@@ -1068,7 +896,7 @@ void taskControlInputs (void * a)
 
 				case portReportStatus:
 
-					if( convertRegToSend( &msgToSend, dataRecKey.gpio ) )
+					if( sup_convertReg( &msgToSend, dataRecKey.gpio ) )
 					{
 						Terminal_Msg_Normal( &msgToSend, buffMonTerminal );
 						xQueueSend( MGR_TERMINAL_QUEUE, &msgToSend, TIMEOUT_QUEUE_MSG_OUT );
@@ -1084,9 +912,8 @@ void taskControlInputs (void * a)
 			/* A partir de los valores actuales de las entradas y sus configuraciones, verifica que
 			 * acciones debe ejecutar en las salidas, alarmas y timers.
 			 */
-			taskControl_CtrActions();
+			taskControl_Actions();
 		}
-
 
 		//ACTUALIZAR_STACK( MGR_INPUT_HANDLER, MGR_INPUT_ID_STACK );
 		vTaskDelay( MGR_INPUT_DELAY );
@@ -1094,17 +921,8 @@ void taskControlInputs (void * a)
 }
 
 /*==================[irq handlers functions ]=========================*/
-static uint16_t GPIO_IRQISR (externId_t perID, irqChId_t chID, dInOutQueue_t * objSend)
-{
-	objSend->gpio= stateInputs[perID].id_gpio;
-	objSend->data.name= stateInputs[perID].name;
-
-	objSend->data.value= ciaaGPIO_GetLevelIRQ( objSend->gpio, chID );
-
-	return objSend->data.value;
-}
-
 // Utilizada para encender el debounce de las teclas:
+/*
 void GPIO0_IRQHandler (void)
 {
 	if( TEC1_PRESSED & ciaaTEC_Level_ISR( TECL1 ) )
@@ -1115,12 +933,15 @@ void GPIO0_IRQHandler (void)
 }
 
 // Utilizadas para las entradas digitales:
-/*
- * 	ciaaGPIO_EnableIRQ( stateInputs[SL_OBJECT_DETECT].id_gpio, IRQ_GPIO_CH1 );
-	ciaaGPIO_EnableIRQ( stateInputs[SL_MODE_FUNCTION].id_gpio, IRQ_GPIO_CH2 );
-	ciaaGPIO_EnableIRQ( stateInputs[WATER_LEVEL].id_gpio, IRQ_GPIO_CH3 );
- *
- */
+static uint16_t GPIO_IRQISR (externId_t perID, irqChId_t chID, dInOutQueue_t * objSend)
+{
+	objSend->gpio= stateInputs[perID].id_gpio;
+	objSend->data.name= stateInputs[perID].name;
+
+	objSend->data.value= ciaaGPIO_GetLevelIRQ( objSend->gpio, chID );
+
+	return objSend->data.value;
+}
 
 void GPIO1_IRQHandler (void)
 {
@@ -1173,12 +994,10 @@ void GPIO3_IRQHandler (void)
 // Por el momento no voy a usar esta irq porque es muy sensible a los cambios por ruido en la AIN.
 void ADC0_IRQHandler (void)
 {
-	/*
 	portBASE_TYPE xSwitchRequired;
 
 	ADC_IRQ0Support();
 	portEND_SWITCHING_ISR( xSwitchRequired );
-	*/
 }
-
+*/
 

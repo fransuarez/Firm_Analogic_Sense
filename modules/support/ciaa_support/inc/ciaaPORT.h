@@ -13,17 +13,10 @@
 #define GPIO_OUT_MODE		( 1 )
 #define GPIO_INP_MODE		( 0 )
 
-// Vienen de la tabla de definicion de puertos.
-#define POS_LED_FIRST		0
-#define POS_LED_LAST		5
-#define POS_TEC_FIRST		6
-#define POS_TEC_LAST		9
-#define POS_GPIO_FIRST		10
-#define POS_GPIO_LAST		24
-
-#define LEDS_TOTAL 			( 6 )
-#define TECL_TOTAL 			( 4 )
-#define ADC_TOTAL			( 3 )
+#define LEDS_TOTAL 			( LED_3 - LED_R +1 )
+#define TECL_TOTAL 			( TECL4 - TECL1 +1 )
+#define ADC_TOTAL			( AIN_3 - AIN_1 +1 )
+#define GPIO_TOTAL			( SPI_MOSI - GPIO_0 +1)
 
 #define TECL_VALID(X) 		( (TECL1<=X) && (TECL4>=X) )
 #define LEDS_VALID(X) 		( (LED_R<=X) && (LED_3>=X) )
@@ -32,11 +25,6 @@
 
 #define IRQ_VALID_CH(X)		( IRQ_GPIO_CH0<=X && IRQ_GPIO_CH7>=X )
 #define MODE_VALID(X)		( GPIO_OUT_MODE==X || GPIO_INP_MODE==X )
-
-//#define LEDS_INDEX(X)		( X-LED_R )
-//#define TECL_INDEX(X)		( X-TECL1 )
-//#define AINP_INDEX(X)		( X-AIN_1 )
-//#define GPIO_INDEX(X)		( X-GPIO_0 ))
 
 typedef struct _pin_gpio_config
 {
@@ -83,14 +71,17 @@ typedef enum _perifericos_edu_ciaa
 	SPI_MISO,
 	SPI_SCK,
 	SPI_MOSI, // LED AUX 2
-	TECL1_4,
+
 	AIN_1, // CH 1
 	AIN_2, // CH 2
 	AIN_3, // CH 3
 
+	GPIO_ALL,
+	TECL_ALL
+
 } perif_t; //size= 1 byte
 
-typedef enum
+typedef enum _irq_gpio_ch
 {
 	IRQ_GPIO_CH0=0,
 	IRQ_GPIO_CH1,
@@ -103,6 +94,6 @@ typedef enum
 
 } irqChId_t;
 
-
 extern const gpioCFG_t pin_config[];
+
 #endif /* MODULES_SUPPORT_CIAA_SUPPORT_INC_CIAAPORT_H_ */
